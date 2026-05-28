@@ -1,0 +1,438 @@
+{
+  "upper_body": [
+    {
+      "name": "barbell curls",
+      "muscle_group": "arms",
+      "equipment": "barbell_kettlebell"
+    },
+    {
+      "name": "pushups",
+      "muscle_group": "arms",
+      "equipment": "bodyweight"
+    },
+    {
+      "name": "dips",
+      "muscle_group": "arms",
+      "equipment": "bodyweight"
+    },
+    {
+      "name": "pushup hold",
+      "muscle_group": "arms",
+      "equipment": "bodyweight"
+    },
+    {
+      "name": "hammer curls",
+      "muscle_group": "arms",
+      "equipment": "dumbbell"
+    },
+    {
+      "name": "db curls",
+      "muscle_group": "arms",
+      "equipment": "dumbbell"
+    },
+    {
+      "name": "wrist curls",
+      "muscle_group": "arms",
+      "equipment": "dumbbell"
+    },
+    {
+      "name": "shoulder shrugs",
+      "muscle_group": "shoulders",
+      "equipment": "barbell_kettlebell"
+    },
+    {
+      "name": "shoulder presses",
+      "muscle_group": "shoulders",
+      "equipment": "barbell_kettlebell"
+    },
+    {
+      "name": "push press",
+      "muscle_group": "shoulders",
+      "equipment": "barbell_kettlebell"
+    },
+    {
+      "name": "8 double db snatch",
+      "muscle_group": "shoulders",
+      "equipment": "dumbbell"
+    },
+    {
+      "name": "z press",
+      "muscle_group": "shoulders",
+      "equipment": "dumbbell"
+    },
+    {
+      "name": "db shoulder press",
+      "muscle_group": "shoulders",
+      "equipment": "dumbbell"
+    },
+    {
+      "name": "hang clean",
+      "muscle_group": "back",
+      "equipment": "barbell_kettlebell"
+    },
+    {
+      "name": "good mornings",
+      "muscle_group": "back",
+      "equipment": "barbell_kettlebell"
+    },
+    {
+      "name": "pull downs",
+      "muscle_group": "back",
+      "equipment": "bodyweight"
+    },
+    {
+      "name": "pull ups",
+      "muscle_group": "back",
+      "equipment": "bodyweight"
+    },
+    {
+      "name": "chin ups",
+      "muscle_group": "back",
+      "equipment": "bodyweight"
+    },
+    {
+      "name": "trx row",
+      "muscle_group": "back",
+      "equipment": "bodyweight"
+    },
+    {
+      "name": "pull up hold",
+      "muscle_group": "back",
+      "equipment": "bodyweight"
+    },
+    {
+      "name": "single arm rows",
+      "muscle_group": "back",
+      "equipment": "dumbbell"
+    },
+    {
+      "name": "eccentric bench press",
+      "muscle_group": "chest",
+      "equipment": "barbell_kettlebell"
+    },
+    {
+      "name": "incline bench press",
+      "muscle_group": "chest",
+      "equipment": "barbell_kettlebell"
+    },
+    {
+      "name": "bench press",
+      "muscle_group": "chest",
+      "equipment": "barbell_kettlebell"
+    },
+    {
+      "name": "floor press",
+      "muscle_group": "chest",
+      "equipment": "barbell_kettlebell"
+    },
+    {
+      "name": "military bench press",
+      "muscle_group": "chest",
+      "equipment": "dumbbell"
+    },
+    {
+      "name": "dumbell flys",
+      "muscle_group": "chest",
+      "equipment": "dumbbell"
+    }
+  ],
+  "lower_body": [
+    {
+      "name": "walking lunges",
+      "muscle_group": "quads",
+      "equipment": "barbell_kettlebell"
+    },
+    {
+      "name": "20 yard lunge",
+      "muscle_group": "quads",
+      "equipment": "dumbbell"
+    },
+    {
+      "name": "front foot elevated split squat hold",
+      "muscle_group": "quads",
+      "equipment": "dumbbell"
+    },
+    {
+      "name": "front foot elevated split squats",
+      "muscle_group": "quads",
+      "equipment": "dumbbell"
+    },
+    {
+      "name": "bulgarian split squats",
+      "muscle_group": "quads",
+      "equipment": "dumbbell"
+    },
+    {
+      "name": "dropstep lunge",
+      "muscle_group": "quads",
+      "equipment": "dumbbell"
+    },
+    {
+      "name": "step ups",
+      "muscle_group": "quads",
+      "equipment": "dumbbell"
+    },
+    {
+      "name": "bulgarian split squats holds",
+      "muscle_group": "quads",
+      "equipment": "dumbbell"
+    },
+    {
+      "name": "eccentric barbell RDL",
+      "muscle_group": "hamstrings",
+      "equipment": "barbell_kettlebell"
+    },
+    {
+      "name": "goodmornings",
+      "muscle_group": "hamstrings",
+      "equipment": "barbell_kettlebell"
+    },
+    {
+      "name": "eccentric hamstring curls",
+      "muscle_group": "hamstrings",
+      "equipment": "bodyweight"
+    },
+    {
+      "name": "kettlebell swings",
+      "muscle_group": "hamstrings",
+      "equipment": "dumbbell"
+    },
+    {
+      "name": "dumbell rdl",
+      "muscle_group": "hamstrings",
+      "equipment": "dumbbell"
+    },
+    {
+      "name": "single leg rdl",
+      "muscle_group": "hamstrings",
+      "equipment": "dumbbell"
+    },
+    {
+      "name": "hip thrust",
+      "muscle_group": "glutes",
+      "equipment": "barbell_kettlebell"
+    },
+    {
+      "name": "glute bridge",
+      "muscle_group": "glutes",
+      "equipment": "barbell_kettlebell"
+    },
+    {
+      "name": "eccentric glute bridge raise",
+      "muscle_group": "glutes",
+      "equipment": "bodyweight"
+    },
+    {
+      "name": "fire hydrants",
+      "muscle_group": "glutes",
+      "equipment": "bodyweight"
+    },
+    {
+      "name": "clam shells",
+      "muscle_group": "glutes",
+      "equipment": "bodyweight"
+    },
+    {
+      "name": "donkey kicks",
+      "muscle_group": "glutes",
+      "equipment": "bodyweight"
+    },
+    {
+      "name": "bulgarian split squats(glutes)",
+      "muscle_group": "glutes",
+      "equipment": "dumbbell"
+    },
+    {
+      "name": "dumbell step ups",
+      "muscle_group": "glutes",
+      "equipment": "dumbbell"
+    },
+    {
+      "name": "standing calf raise",
+      "muscle_group": "calves",
+      "equipment": "barbell_kettlebell"
+    },
+    {
+      "name": "seated calf raise",
+      "muscle_group": "calves",
+      "equipment": "barbell_kettlebell"
+    },
+    {
+      "name": "calf raises",
+      "muscle_group": "calves",
+      "equipment": "bodyweight"
+    },
+    {
+      "name": "single leg calf raises",
+      "muscle_group": "calves",
+      "equipment": "dumbbell"
+    },
+    {
+      "name": "toe walk farmers carry",
+      "muscle_group": "calves",
+      "equipment": "dumbbell"
+    },
+    {
+      "name": "sumo deadlift",
+      "muscle_group": "hips",
+      "equipment": "barbell_kettlebell"
+    },
+    {
+      "name": "clam shells",
+      "muscle_group": "hips",
+      "equipment": "bodyweight"
+    },
+    {
+      "name": "fire hydrants",
+      "muscle_group": "hips",
+      "equipment": "bodyweight"
+    },
+    {
+      "name": "hip circles",
+      "muscle_group": "hips",
+      "equipment": "bodyweight"
+    },
+    {
+      "name": "lateral band walks",
+      "muscle_group": "hips",
+      "equipment": "bodyweight"
+    },
+    {
+      "name": "dinkey kicks",
+      "muscle_group": "hips",
+      "equipment": "bodyweight"
+    },
+    {
+      "name": "bulgarian split squat(hips)",
+      "muscle_group": "hips",
+      "equipment": "dumbbell"
+    },
+    {
+      "name": "dumbell sumo deadlift",
+      "muscle_group": "hips",
+      "equipment": "dumbbell"
+    },
+    {
+      "name": "lateral lunge",
+      "muscle_group": "hips",
+      "equipment": "dumbbell"
+    },
+    {
+      "name": "curtsy lunge",
+      "muscle_group": "hips",
+      "equipment": "dumbbell"
+    }
+  ],
+  "core": [
+    {
+      "name": "ab rollout",
+      "muscle_group": "abs",
+      "equipment": "bodyweight"
+    },
+    {
+      "name": "weighted sit up",
+      "muscle_group": "abs",
+      "equipment": "bodyweight"
+    },
+    {
+      "name": "single arm sit up",
+      "muscle_group": "abs",
+      "equipment": "bodyweight"
+    },
+    {
+      "name": "crunches",
+      "muscle_group": "abs",
+      "equipment": "bodyweight"
+    },
+    {
+      "name": "suitcase sit up",
+      "muscle_group": "abs",
+      "equipment": "bodyweight"
+    },
+    {
+      "name": "v up",
+      "muscle_group": "abs",
+      "equipment": "bodyweight"
+    },
+    {
+      "name": "landmine rotation",
+      "muscle_group": "obliques",
+      "equipment": "bodyweight"
+    },
+    {
+      "name": "side plank",
+      "muscle_group": "obliques",
+      "equipment": "bodyweight"
+    },
+    {
+      "name": "heel touches",
+      "muscle_group": "obliques",
+      "equipment": "bodyweight"
+    },
+    {
+      "name": "side v up",
+      "muscle_group": "obliques",
+      "equipment": "bodyweight"
+    },
+    {
+      "name": "single arm farmers walk",
+      "muscle_group": "obliques",
+      "equipment": "bodyweight"
+    },
+    {
+      "name": "russian twists",
+      "muscle_group": "obliques",
+      "equipment": "bodyweight"
+    },
+    {
+      "name": "1/2 russian twists",
+      "muscle_group": "obliques",
+      "equipment": "bodyweight"
+    },
+    {
+      "name": "back extensions",
+      "muscle_group": "lower_back",
+      "equipment": "bodyweight"
+    },
+    {
+      "name": "superman hold",
+      "muscle_group": "lower_back",
+      "equipment": "bodyweight"
+    },
+    {
+      "name": "bird dog",
+      "muscle_group": "lower_back",
+      "equipment": "bodyweight"
+    },
+    {
+      "name": "plank",
+      "muscle_group": "deep_core_stability",
+      "equipment": "bodyweight"
+    },
+    {
+      "name": "dead bug",
+      "muscle_group": "deep_core_stability",
+      "equipment": "bodyweight"
+    },
+    {
+      "name": "hollow body hold",
+      "muscle_group": "deep_core_stability",
+      "equipment": "bodyweight"
+    },
+    {
+      "name": "pallof press",
+      "muscle_group": "deep_core_stability",
+      "equipment": "bodyweight"
+    },
+    {
+      "name": "famers walk",
+      "muscle_group": "deep_core_stability",
+      "equipment": "bodyweight"
+    },
+    {
+      "name": "suitcase hold",
+      "muscle_group": "deep_core_stability",
+      "equipment": "bodyweight"
+    }
+  ]
+}

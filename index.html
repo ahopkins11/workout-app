@@ -1,0 +1,987 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#1a1a2e" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Workout" />
+
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png" />
+
+  <title>Workout</title>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #1a1a2e;
+      --surface: #16213e;
+      --card: #0f3460;
+      --accent: #e94560;
+      --text: #eaeaea;
+      --muted: #8888aa;
+      --tab-h: 64px;
+      --safe-top: env(safe-area-inset-top);
+      --safe-bottom: env(safe-area-inset-bottom);
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      height: 100dvh;
+      overflow: hidden;
+      padding-top: var(--safe-top);
+    }
+
+    /* ── Screens ── */
+    .screen {
+      position: absolute;
+      inset: 0;
+      top: var(--safe-top);
+      bottom: calc(var(--tab-h) + var(--safe-bottom));
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      display: none;
+      flex-direction: column;
+    }
+    .screen.active { display: flex; }
+
+    /* ── Shared header ── */
+    .screen-header {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      background: var(--surface);
+      padding: 1rem 1.25rem 0.75rem;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      flex-shrink: 0;
+    }
+    .screen-header h1 { font-size: 1.5rem; font-weight: 700; letter-spacing: -0.5px; }
+    .screen-header p  { font-size: 0.8rem; color: var(--muted); margin-top: 0.15rem; }
+
+    /* ── Bottom tab bar ── */
+    #tab-bar {
+      position: fixed;
+      bottom: 0;
+      left: 0; right: 0;
+      height: calc(var(--tab-h) + var(--safe-bottom));
+      padding-bottom: var(--safe-bottom);
+      background: var(--surface);
+      border-top: 1px solid rgba(255,255,255,0.07);
+      display: flex;
+      z-index: 100;
+    }
+    .tab-btn {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 3px;
+      border: none;
+      background: none;
+      color: var(--muted);
+      font-size: 0.65rem;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      transition: color 0.15s;
+    }
+    .tab-btn svg { width: 22px; height: 22px; }
+    .tab-btn.active { color: var(--accent); }
+
+    /* ── Library screen ── */
+    #cat-nav {
+      display: flex;
+      gap: 0.5rem;
+      padding: 0.75rem 1.25rem;
+      overflow-x: auto;
+      scrollbar-width: none;
+      flex-shrink: 0;
+    }
+    #cat-nav::-webkit-scrollbar { display: none; }
+
+    .pill-btn {
+      flex-shrink: 0;
+      padding: 0.45rem 1rem;
+      border-radius: 999px;
+      border: 1.5px solid var(--card);
+      background: transparent;
+      color: var(--muted);
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .pill-btn.active {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+    }
+
+    #search {
+      margin: 0 1.25rem 0.75rem;
+      padding: 0.6rem 1rem;
+      border-radius: 10px;
+      border: 1.5px solid var(--card);
+      background: var(--surface);
+      color: var(--text);
+      font-size: 0.9rem;
+      outline: none;
+      flex-shrink: 0;
+    }
+    #search::placeholder { color: var(--muted); }
+
+    #exercise-list { padding: 0 1.25rem 1rem; }
+
+    /* ── Shared section/card styles ── */
+    .section { margin-bottom: 1.5rem; }
+
+    .section-title {
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--muted);
+      margin-bottom: 0.5rem;
+    }
+
+    .exercise-list { display: flex; flex-direction: column; gap: 0.4rem; }
+
+    .exercise-card {
+      background: var(--card);
+      border-radius: 10px;
+      padding: 0.75rem 1rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .exercise-name { font-size: 0.95rem; font-weight: 500; text-transform: capitalize; }
+
+    .exercise-meta { display: flex; gap: 0.4rem; align-items: center; flex-shrink: 0; margin-left: 0.5rem; }
+
+    .badge {
+      font-size: 0.65rem;
+      font-weight: 600;
+      padding: 0.2rem 0.5rem;
+      border-radius: 999px;
+      white-space: nowrap;
+    }
+    .badge-muscle { background: rgba(233,69,96,0.18); color: var(--accent); }
+    .badge-equip  { background: rgba(255,255,255,0.07); color: var(--muted); }
+
+    .empty {
+      text-align: center;
+      color: var(--muted);
+      padding: 3rem 1.25rem;
+      font-size: 0.9rem;
+      line-height: 1.6;
+    }
+
+    /* ── Generator screen ── */
+    #gen-screen { padding-bottom: 1.5rem; }
+    .gen-body { padding: 1rem 1.25rem 0; }
+    .filter-group { margin-bottom: 1.25rem; }
+    .filter-group .section-title { margin-bottom: 0.6rem; }
+
+    .toggle-grid { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+
+    .toggle-pill {
+      padding: 0.4rem 0.85rem;
+      border-radius: 999px;
+      border: 1.5px solid var(--card);
+      background: transparent;
+      color: var(--muted);
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      text-transform: capitalize;
+      -webkit-tap-highlight-color: transparent;
+      transition: all 0.15s;
+    }
+    .toggle-pill.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+    .generate-btn {
+      display: block;
+      width: 100%;
+      margin: 1rem 0 0;
+      padding: 0.95rem;
+      border-radius: 14px;
+      border: none;
+      background: var(--accent);
+      color: #fff;
+      font-size: 1rem;
+      font-weight: 700;
+      letter-spacing: 0.3px;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      transition: opacity 0.15s;
+    }
+    .generate-btn:active { opacity: 0.8; }
+
+    #workout-result { padding: 1.25rem 1.25rem 0; }
+
+    .result-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.75rem;
+    }
+    .result-title { font-size: 1rem; font-weight: 700; }
+
+    .regen-btn {
+      padding: 0.4rem 0.9rem;
+      border-radius: 999px;
+      border: 1.5px solid var(--accent);
+      background: transparent;
+      color: var(--accent);
+      font-size: 0.8rem;
+      font-weight: 700;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      transition: all 0.15s;
+    }
+    .regen-btn:active { background: var(--accent); color: #fff; }
+
+    .workout-item {
+      background: var(--card);
+      border-radius: 12px;
+      padding: 0.9rem 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 0.4rem;
+    }
+    .workout-num {
+      width: 26px; height: 26px;
+      border-radius: 50%;
+      background: rgba(233,69,96,0.2);
+      color: var(--accent);
+      font-size: 0.75rem;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .workout-info { flex: 1; min-width: 0; }
+    .workout-name {
+      font-size: 0.95rem;
+      font-weight: 600;
+      text-transform: capitalize;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .workout-sub { font-size: 0.72rem; color: var(--muted); margin-top: 0.15rem; text-transform: capitalize; }
+
+    .divider { height: 1px; background: rgba(255,255,255,0.05); margin: 1rem 0; }
+
+    /* ── Journal screen ── */
+    #journal-screen { padding-bottom: 1rem; }
+
+    .journal-header-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+
+    .add-entry-btn {
+      margin-top: 0.15rem;
+      padding: 0.35rem 0.85rem;
+      border-radius: 999px;
+      border: none;
+      background: var(--accent);
+      color: #fff;
+      font-size: 0.8rem;
+      font-weight: 700;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      white-space: nowrap;
+    }
+
+    #journal-list { padding: 0.75rem 1.25rem 1rem; }
+
+    .date-group { margin-bottom: 1.5rem; }
+
+    .date-label {
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--muted);
+      margin-bottom: 0.5rem;
+    }
+
+    .journal-card {
+      background: var(--card);
+      border-radius: 12px;
+      padding: 0.85rem 1rem;
+      margin-bottom: 0.4rem;
+    }
+
+    .journal-card-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 0.5rem;
+    }
+
+    .journal-exercise {
+      font-size: 0.95rem;
+      font-weight: 600;
+      text-transform: capitalize;
+      flex: 1;
+    }
+
+    .journal-delete {
+      background: none;
+      border: none;
+      color: var(--muted);
+      cursor: pointer;
+      padding: 0 0 0 0.5rem;
+      flex-shrink: 0;
+      -webkit-tap-highlight-color: transparent;
+      line-height: 1;
+      font-size: 1rem;
+    }
+    .journal-delete:active { color: var(--accent); }
+
+    .journal-meta {
+      display: flex;
+      gap: 0.4rem;
+      flex-wrap: wrap;
+      margin-top: 0.35rem;
+    }
+
+    .journal-comment {
+      margin-top: 0.6rem;
+      font-size: 0.82rem;
+      color: var(--muted);
+      line-height: 1.45;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    /* ── Bottom sheet ── */
+    .overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.55);
+      z-index: 200;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s;
+    }
+    .overlay.open { opacity: 1; pointer-events: auto; }
+
+    .sheet {
+      position: fixed;
+      left: 0; right: 0;
+      bottom: 0;
+      z-index: 201;
+      background: var(--surface);
+      border-radius: 20px 20px 0 0;
+      max-height: 92dvh;
+      display: flex;
+      flex-direction: column;
+      transform: translateY(100%);
+      transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+      padding-bottom: var(--safe-bottom);
+    }
+    .sheet.open { transform: translateY(0); }
+
+    .sheet-handle {
+      width: 36px; height: 4px;
+      border-radius: 2px;
+      background: rgba(255,255,255,0.15);
+      margin: 12px auto 0;
+      flex-shrink: 0;
+    }
+
+    .sheet-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      padding: 1rem 1.25rem 0.75rem;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      flex-shrink: 0;
+    }
+
+    .sheet-body {
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      padding: 1rem 1.25rem;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .field-label {
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--muted);
+      margin-bottom: 0.4rem;
+    }
+
+    .field-input {
+      width: 100%;
+      padding: 0.65rem 0.9rem;
+      border-radius: 10px;
+      border: 1.5px solid var(--card);
+      background: var(--bg);
+      color: var(--text);
+      font-size: 0.92rem;
+      font-family: inherit;
+      outline: none;
+      appearance: none;
+      -webkit-appearance: none;
+    }
+    .field-input:focus { border-color: var(--accent); }
+    .field-input::placeholder { color: var(--muted); }
+
+    select.field-input {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%238888aa' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 0.85rem center;
+      padding-right: 2.2rem;
+    }
+
+    textarea.field-input {
+      resize: none;
+      min-height: 80px;
+      line-height: 1.5;
+    }
+
+    .weight-row { display: flex; gap: 0.75rem; align-items: flex-end; }
+    .weight-row > div:first-child { flex: 1; }
+    .weight-row > div:last-child { width: 110px; }
+
+    #weight-field { display: block; }
+    #weight-field.hidden { display: none; }
+
+    .wtype-grid { display: flex; gap: 0.4rem; flex-wrap: wrap; }
+    .wtype-pill {
+      padding: 0.4rem 0.85rem;
+      border-radius: 999px;
+      border: 1.5px solid var(--card);
+      background: transparent;
+      color: var(--muted);
+      font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      transition: all 0.15s;
+    }
+    .wtype-pill.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+    .sheet-footer {
+      display: flex;
+      gap: 0.75rem;
+      padding: 0.75rem 1.25rem;
+      border-top: 1px solid rgba(255,255,255,0.06);
+      flex-shrink: 0;
+    }
+
+    .btn-cancel {
+      flex: 1;
+      padding: 0.85rem;
+      border-radius: 12px;
+      border: 1.5px solid var(--card);
+      background: transparent;
+      color: var(--muted);
+      font-size: 0.9rem;
+      font-weight: 700;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .btn-save {
+      flex: 2;
+      padding: 0.85rem;
+      border-radius: 12px;
+      border: none;
+      background: var(--accent);
+      color: #fff;
+      font-size: 0.9rem;
+      font-weight: 700;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      transition: opacity 0.15s;
+    }
+    .btn-save:active { opacity: 0.8; }
+  </style>
+</head>
+<body>
+
+<!-- ── Library Screen ── -->
+<div id="library-screen" class="screen active">
+  <div class="screen-header">
+    <h1>Workout</h1>
+    <p>Exercise Library</p>
+  </div>
+
+  <nav id="cat-nav">
+    <button class="pill-btn active" data-cat="all">All</button>
+    <button class="pill-btn" data-cat="upper_body">Upper Body</button>
+    <button class="pill-btn" data-cat="lower_body">Lower Body</button>
+    <button class="pill-btn" data-cat="core">Core</button>
+  </nav>
+
+  <input id="search" type="search" placeholder="Search exercises..." />
+
+  <div id="exercise-list"></div>
+</div>
+
+<!-- ── Generator Screen ── -->
+<div id="gen-screen" class="screen">
+  <div class="screen-header">
+    <h1>Generator</h1>
+    <p>Build a random workout</p>
+  </div>
+
+  <div class="gen-body">
+    <div class="filter-group">
+      <div class="section-title">Equipment Available</div>
+      <div class="toggle-grid" id="equip-toggles">
+        <button class="toggle-pill on" data-equip="bodyweight">Bodyweight</button>
+        <button class="toggle-pill on" data-equip="dumbbell">Dumbbell</button>
+        <button class="toggle-pill on" data-equip="barbell_kettlebell">Barbell / Kettlebell</button>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="filter-group">
+      <div class="section-title">Upper Body</div>
+      <div class="toggle-grid">
+        <button class="toggle-pill" data-muscle="arms">Arms</button>
+        <button class="toggle-pill" data-muscle="shoulders">Shoulders</button>
+        <button class="toggle-pill" data-muscle="back">Back</button>
+        <button class="toggle-pill" data-muscle="chest">Chest</button>
+      </div>
+    </div>
+
+    <div class="filter-group">
+      <div class="section-title">Lower Body</div>
+      <div class="toggle-grid">
+        <button class="toggle-pill" data-muscle="quads">Quads</button>
+        <button class="toggle-pill" data-muscle="hamstrings">Hamstrings</button>
+        <button class="toggle-pill" data-muscle="glutes">Glutes</button>
+        <button class="toggle-pill" data-muscle="calves">Calves</button>
+        <button class="toggle-pill" data-muscle="hips">Hips</button>
+      </div>
+    </div>
+
+    <button class="generate-btn" id="generate-btn">Generate Workout</button>
+  </div>
+
+  <div id="workout-result"></div>
+</div>
+
+<!-- ── Journal Screen ── -->
+<div id="journal-screen" class="screen">
+  <div class="screen-header">
+    <div class="journal-header-row">
+      <div>
+        <h1>Journal</h1>
+        <p>Your workout history</p>
+      </div>
+      <button class="add-entry-btn" id="open-sheet-btn">+ Log Workout</button>
+    </div>
+  </div>
+
+  <div id="journal-list"></div>
+</div>
+
+<!-- ── Add Entry Sheet ── -->
+<div class="overlay" id="overlay"></div>
+
+<div class="sheet" id="entry-sheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-title">Log Workout</div>
+
+  <div class="sheet-body">
+    <div>
+      <div class="field-label">Date</div>
+      <input class="field-input" type="date" id="f-date" />
+    </div>
+
+    <div>
+      <div class="field-label">Exercise</div>
+      <input class="field-input" type="text" id="f-exercise" placeholder="e.g. bench press" list="exercise-datalist" autocomplete="off" />
+      <datalist id="exercise-datalist"></datalist>
+    </div>
+
+    <div>
+      <div class="field-label">Weight Type</div>
+      <div class="wtype-grid" id="wtype-grid">
+        <button class="wtype-pill on" data-wtype="bodyweight">Bodyweight</button>
+        <button class="wtype-pill" data-wtype="dumbbell">Dumbbell</button>
+        <button class="wtype-pill" data-wtype="barbell_kettlebell">Barbell / KB</button>
+      </div>
+    </div>
+
+    <div id="weight-field">
+      <div class="field-label">Weight (lbs)</div>
+      <input class="field-input" type="number" id="f-weight" placeholder="0" min="0" step="2.5" inputmode="decimal" />
+    </div>
+
+    <div>
+      <div class="field-label">Comment</div>
+      <textarea class="field-input" id="f-comment" placeholder="How did it feel? Any notes..."></textarea>
+    </div>
+  </div>
+
+  <div class="sheet-footer">
+    <button class="btn-cancel" id="cancel-btn">Cancel</button>
+    <button class="btn-save" id="save-btn">Save Entry</button>
+  </div>
+</div>
+
+<!-- ── Tab Bar ── -->
+<div id="tab-bar">
+  <button class="tab-btn active" data-tab="library-screen">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+      <rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/>
+    </svg>
+    Library
+  </button>
+  <button class="tab-btn" data-tab="gen-screen">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+    </svg>
+    Generate
+  </button>
+  <button class="tab-btn" data-tab="journal-screen">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+      <polyline points="14 2 14 8 20 8"/>
+      <line x1="16" y1="13" x2="8" y2="13"/>
+      <line x1="16" y1="17" x2="8" y2="17"/>
+      <polyline points="10 9 9 9 8 9"/>
+    </svg>
+    Journal
+  </button>
+</div>
+
+<script>
+  let exercises = {};
+  let currentCat = 'all';
+  let lastMuscles = [];
+  let lastEquip = [];
+
+  // ── Data ──────────────────────────────────────────────
+  async function loadExercises() {
+    const res = await fetch('exercises.json');
+    exercises = await res.json();
+    renderLibrary();
+    populateExerciseDatelist();
+  }
+
+  function getJournal() {
+    try { return JSON.parse(localStorage.getItem('workout-journal') || '[]'); }
+    catch { return []; }
+  }
+
+  function saveJournal(entries) {
+    localStorage.setItem('workout-journal', JSON.stringify(entries));
+  }
+
+  // ── Library ──────────────────────────────────────────
+  function renderLibrary() {
+    const query = document.getElementById('search').value.toLowerCase().trim();
+    const container = document.getElementById('exercise-list');
+    const cats = currentCat === 'all' ? Object.keys(exercises) : [currentCat];
+
+    let html = '';
+    for (const cat of cats) {
+      const items = (exercises[cat] || []).filter(ex =>
+        !query ||
+        ex.name.toLowerCase().includes(query) ||
+        ex.muscle_group.toLowerCase().includes(query) ||
+        ex.equipment.toLowerCase().includes(query)
+      );
+      if (!items.length) continue;
+      const label = cat.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+      html += `<div class="section">
+        <div class="section-title">${label}</div>
+        <div class="exercise-list">
+          ${items.map(ex => `
+            <div class="exercise-card">
+              <span class="exercise-name">${ex.name}</span>
+              <div class="exercise-meta">
+                <span class="badge badge-muscle">${ex.muscle_group.replace(/_/g, ' ')}</span>
+                <span class="badge badge-equip">${ex.equipment.replace('_', ' / ')}</span>
+              </div>
+            </div>`).join('')}
+        </div>
+      </div>`;
+    }
+    container.innerHTML = html || '<p class="empty">No exercises found.</p>';
+  }
+
+  document.getElementById('cat-nav').addEventListener('click', e => {
+    const btn = e.target.closest('.pill-btn[data-cat]');
+    if (!btn) return;
+    currentCat = btn.dataset.cat;
+    document.querySelectorAll('#cat-nav .pill-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    renderLibrary();
+  });
+
+  document.getElementById('search').addEventListener('input', renderLibrary);
+
+  // ── Generator ─────────────────────────────────────────
+  function getSelected(selector) {
+    return [...document.querySelectorAll(selector + '.on')]
+      .map(b => b.dataset.muscle || b.dataset.equip)
+      .filter(Boolean);
+  }
+
+  document.getElementById('gen-screen').addEventListener('click', e => {
+    const pill = e.target.closest('.toggle-pill');
+    if (pill) pill.classList.toggle('on');
+  });
+
+  function pickN(arr, n) {
+    return [...arr].sort(() => Math.random() - 0.5).slice(0, n);
+  }
+
+  function generateWorkout() {
+    const selectedMuscles = getSelected('[data-muscle]');
+    const selectedEquip   = getSelected('[data-equip]');
+
+    if (!selectedMuscles.length) {
+      document.getElementById('workout-result').innerHTML =
+        '<p class="empty">Select at least one muscle group.</p>';
+      return;
+    }
+    if (!selectedEquip.length) {
+      document.getElementById('workout-result').innerHTML =
+        '<p class="empty">Select at least one equipment type.</p>';
+      return;
+    }
+
+    const all = Object.values(exercises).flat();
+    const workout = [];
+
+    for (const muscle of selectedMuscles) {
+      const pool = all.filter(ex =>
+        ex.muscle_group === muscle && selectedEquip.includes(ex.equipment)
+      );
+      workout.push(...pickN(pool, 2));
+    }
+
+    workout.push(...pickN(exercises.core || [], 2));
+
+    if (!workout.length) {
+      document.getElementById('workout-result').innerHTML =
+        '<p class="empty">No exercises match your equipment.<br>Try adding more equipment.</p>';
+      return;
+    }
+
+    const equipLabel = e => e.replace('_', ' / ').replace(/\b\w/g, c => c.toUpperCase());
+
+    document.getElementById('workout-result').innerHTML = `
+      <div class="result-header">
+        <span class="result-title">${workout.length} Exercise${workout.length > 1 ? 's' : ''}</span>
+        <button class="regen-btn" id="regen-btn">Regenerate</button>
+      </div>
+      <div class="exercise-list">
+        ${workout.map((ex, i) => `
+          <div class="workout-item">
+            <div class="workout-num">${i + 1}</div>
+            <div class="workout-info">
+              <div class="workout-name">${ex.name}</div>
+              <div class="workout-sub">${ex.muscle_group.replace(/_/g, ' ')} &middot; ${equipLabel(ex.equipment)}</div>
+            </div>
+          </div>`).join('')}
+      </div>`;
+
+    document.getElementById('regen-btn').addEventListener('click', generateWorkout);
+    document.getElementById('workout-result').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  document.getElementById('generate-btn').addEventListener('click', generateWorkout);
+
+  // ── Journal ───────────────────────────────────────────
+  function formatDateLabel(dateStr) {
+    const [y, m, d] = dateStr.split('-').map(Number);
+    const today = new Date();
+    const date  = new Date(y, m - 1, d);
+    const todayMid  = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const diffDays  = Math.round((todayMid - date) / 86400000);
+    if (diffDays === 0) return 'Today';
+    if (diffDays === 1) return 'Yesterday';
+    return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+  }
+
+  function equipBadgeLabel(wtype) {
+    if (wtype === 'bodyweight') return 'Bodyweight';
+    if (wtype === 'dumbbell') return 'Dumbbell';
+    if (wtype === 'barbell_kettlebell') return 'Barbell / KB';
+    return wtype;
+  }
+
+  function renderJournal() {
+    const entries = getJournal();
+    const container = document.getElementById('journal-list');
+
+    if (!entries.length) {
+      container.innerHTML = '<p class="empty">No workouts logged yet.<br>Tap "+ Log Workout" to add your first entry.</p>';
+      return;
+    }
+
+    // Group by date, sorted newest first
+    const groups = {};
+    for (const entry of entries) {
+      if (!groups[entry.date]) groups[entry.date] = [];
+      groups[entry.date].push(entry);
+    }
+    const sortedDates = Object.keys(groups).sort((a, b) => b.localeCompare(a));
+
+    let html = '';
+    for (const date of sortedDates) {
+      const dayEntries = groups[date];
+      html += `<div class="date-group">
+        <div class="date-label">${formatDateLabel(date)}</div>
+        ${dayEntries.map(entry => `
+          <div class="journal-card">
+            <div class="journal-card-top">
+              <div class="journal-exercise">${entry.exercise}</div>
+              <button class="journal-delete" data-id="${entry.id}" aria-label="Delete">&#x2715;</button>
+            </div>
+            <div class="journal-meta">
+              <span class="badge badge-equip">${equipBadgeLabel(entry.weightType)}</span>
+              ${entry.weightType !== 'bodyweight' && entry.weight
+                ? `<span class="badge badge-muscle">${entry.weight} lbs</span>`
+                : ''}
+            </div>
+            ${entry.comment ? `<div class="journal-comment">${escHtml(entry.comment)}</div>` : ''}
+          </div>`).join('')}
+      </div>`;
+    }
+
+    container.innerHTML = html;
+  }
+
+  function escHtml(str) {
+    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  document.getElementById('journal-list').addEventListener('click', e => {
+    const btn = e.target.closest('.journal-delete[data-id]');
+    if (!btn) return;
+    const id = btn.dataset.id;
+    const entries = getJournal().filter(en => en.id !== id);
+    saveJournal(entries);
+    renderJournal();
+  });
+
+  // ── Add Entry Sheet ────────────────────────────────────
+  function populateExerciseDatelist() {
+    const all = Object.values(exercises).flat();
+    const names = [...new Set(all.map(ex => ex.name))].sort();
+    document.getElementById('exercise-datalist').innerHTML =
+      names.map(n => `<option value="${n}">`).join('');
+  }
+
+  function todayStr() {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  }
+
+  function openSheet() {
+    document.getElementById('f-date').value = todayStr();
+    document.getElementById('f-exercise').value = '';
+    document.getElementById('f-weight').value = '';
+    document.getElementById('f-comment').value = '';
+    // Reset weight type to bodyweight
+    document.querySelectorAll('.wtype-pill').forEach(p => p.classList.remove('on'));
+    document.querySelector('.wtype-pill[data-wtype="bodyweight"]').classList.add('on');
+    document.getElementById('weight-field').classList.add('hidden');
+
+    document.getElementById('overlay').classList.add('open');
+    document.getElementById('entry-sheet').classList.add('open');
+    setTimeout(() => document.getElementById('f-exercise').focus(), 350);
+  }
+
+  function closeSheet() {
+    document.getElementById('overlay').classList.remove('open');
+    document.getElementById('entry-sheet').classList.remove('open');
+  }
+
+  document.getElementById('open-sheet-btn').addEventListener('click', openSheet);
+  document.getElementById('overlay').addEventListener('click', closeSheet);
+  document.getElementById('cancel-btn').addEventListener('click', closeSheet);
+
+  // Weight type toggle
+  document.getElementById('wtype-grid').addEventListener('click', e => {
+    const pill = e.target.closest('.wtype-pill');
+    if (!pill) return;
+    document.querySelectorAll('.wtype-pill').forEach(p => p.classList.remove('on'));
+    pill.classList.add('on');
+    const isBodyweight = pill.dataset.wtype === 'bodyweight';
+    document.getElementById('weight-field').classList.toggle('hidden', isBodyweight);
+  });
+
+  document.getElementById('save-btn').addEventListener('click', () => {
+    const exercise = document.getElementById('f-exercise').value.trim();
+    if (!exercise) {
+      document.getElementById('f-exercise').focus();
+      return;
+    }
+
+    const activePill = document.querySelector('.wtype-pill.on');
+    const weightType = activePill ? activePill.dataset.wtype : 'bodyweight';
+    const weightVal  = document.getElementById('f-weight').value;
+    const weight     = weightType !== 'bodyweight' && weightVal ? parseFloat(weightVal) : null;
+
+    const entry = {
+      id:         String(Date.now()),
+      date:       document.getElementById('f-date').value || todayStr(),
+      exercise,
+      weightType,
+      weight,
+      comment:    document.getElementById('f-comment').value.trim()
+    };
+
+    const entries = getJournal();
+    entries.push(entry);
+    saveJournal(entries);
+    renderJournal();
+    closeSheet();
+  });
+
+  // ── Tab switching ──────────────────────────────────────
+  document.getElementById('tab-bar').addEventListener('click', e => {
+    const btn = e.target.closest('.tab-btn[data-tab]');
+    if (!btn) return;
+    const target = btn.dataset.tab;
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById(target).classList.add('active');
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    if (target === 'journal-screen') renderJournal();
+  });
+
+  // ── Boot ──────────────────────────────────────────────
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('service-worker.js');
+  }
+
+  loadExercises();
+</script>
+</body>
+</html>
