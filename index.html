@@ -660,6 +660,29 @@
       transition: opacity 0.15s;
     }
     .btn-save:active { opacity: 0.8; }
+
+    /* ── Library header row ── */
+    .lib-header-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+
+    /* ── Custom exercise card ── */
+    .exercise-card.custom-card { border: 1.5px solid rgba(233,69,96,0.25); }
+
+    .ex-delete {
+      background: none;
+      border: none;
+      color: var(--muted);
+      font-size: 0.9rem;
+      cursor: pointer;
+      padding: 0 0 0 0.35rem;
+      flex-shrink: 0;
+      line-height: 1;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .ex-delete:active { color: var(--accent); }
   </style>
 </head>
 <body>
@@ -667,8 +690,13 @@
 <!-- ── Library Screen ── -->
 <div id="library-screen" class="screen active">
   <div class="screen-header">
-    <h1>Workout</h1>
-    <p>Exercise Library</p>
+    <div class="lib-header-row">
+      <div>
+        <h1>Workout</h1>
+        <p>Exercise Library</p>
+      </div>
+      <button class="add-entry-btn" id="open-add-exercise-btn">+ Add</button>
+    </div>
   </div>
 
   <nav id="cat-nav">
@@ -797,6 +825,47 @@
   </div>
 </div>
 
+<!-- ── Add Exercise Sheet ── -->
+<div class="sheet" id="add-exercise-sheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-title">Add Exercise</div>
+
+  <div class="sheet-body">
+    <div>
+      <div class="field-label">Exercise Name</div>
+      <input class="field-input" type="text" id="ae-name" placeholder="e.g. cable fly" autocomplete="off" />
+    </div>
+
+    <div>
+      <div class="field-label">Category</div>
+      <div class="toggle-grid" id="ae-cat-grid">
+        <button class="toggle-pill on" data-aecat="upper_body">Upper Body</button>
+        <button class="toggle-pill" data-aecat="lower_body">Lower Body</button>
+        <button class="toggle-pill" data-aecat="core">Core</button>
+      </div>
+    </div>
+
+    <div>
+      <div class="field-label">Muscle Group</div>
+      <div class="toggle-grid" id="ae-muscle-grid"></div>
+    </div>
+
+    <div>
+      <div class="field-label">Equipment</div>
+      <div class="toggle-grid" id="ae-equip-grid">
+        <button class="toggle-pill on" data-aeequip="bodyweight">Bodyweight</button>
+        <button class="toggle-pill" data-aeequip="dumbbell">Dumbbell</button>
+        <button class="toggle-pill" data-aeequip="barbell_kettlebell">Barbell / KB</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="sheet-footer">
+    <button class="btn-cancel" id="ae-cancel-btn">Cancel</button>
+    <button class="btn-save" id="ae-save-btn">Add Exercise</button>
+  </div>
+</div>
+
 <!-- ── Tab Bar ── -->
 <div id="tab-bar">
   <button class="tab-btn active" data-tab="library-screen">
@@ -857,15 +926,120 @@
     return null;
   }
 
+  // ── Custom exercises ──────────────────────────────────
+  const MUSCLE_GROUPS = {
+    upper_body: ['arms', 'shoulders', 'back', 'chest'],
+    lower_body: ['quads', 'hamstrings', 'glutes', 'calves', 'hips'],
+    core:       ['abs', 'obliques', 'lower_back', 'deep_core_stability']
+  };
+
+  function getCustomExercises() {
+    try { return JSON.parse(localStorage.getItem('custom-exercises') || '[]'); }
+    catch { return []; }
+  }
+  function saveCustomExercises(arr) {
+    localStorage.setItem('custom-exercises', JSON.stringify(arr));
+  }
+
+  // ── Add Exercise Sheet ─────────────────────────────────
+  function renderAeMusclePills(cat) {
+    const groups = MUSCLE_GROUPS[cat] || [];
+    document.getElementById('ae-muscle-grid').innerHTML = groups.map((g, i) =>
+      `<button class="toggle-pill${i === 0 ? ' on' : ''}" data-aemuscle="${g}">${g.replace(/_/g, ' ')}</button>`
+    ).join('');
+    document.querySelectorAll('#ae-muscle-grid .toggle-pill').forEach(p => {
+      p.onclick = () => {
+        document.querySelectorAll('#ae-muscle-grid .toggle-pill').forEach(x => x.classList.remove('on'));
+        p.classList.add('on');
+      };
+    });
+  }
+
+  function openAddExerciseSheet() {
+    document.getElementById('ae-name').value = '';
+    document.querySelectorAll('#ae-cat-grid .toggle-pill').forEach((p, i) => {
+      p.classList.toggle('on', i === 0);
+    });
+    document.querySelectorAll('#ae-equip-grid .toggle-pill').forEach((p, i) => {
+      p.classList.toggle('on', i === 0);
+    });
+    renderAeMusclePills('upper_body');
+    document.getElementById('overlay').classList.add('open');
+    document.getElementById('add-exercise-sheet').classList.add('open');
+    setTimeout(() => document.getElementById('ae-name').focus(), 350);
+  }
+
+  function closeAddExerciseSheet() {
+    document.getElementById('overlay').classList.remove('open');
+    document.getElementById('add-exercise-sheet').classList.remove('open');
+  }
+
+  document.getElementById('open-add-exercise-btn').addEventListener('click', openAddExerciseSheet);
+  document.getElementById('ae-cancel-btn').addEventListener('click', closeAddExerciseSheet);
+
+  document.getElementById('ae-cat-grid').addEventListener('click', e => {
+    const pill = e.target.closest('.toggle-pill[data-aecat]');
+    if (!pill) return;
+    document.querySelectorAll('#ae-cat-grid .toggle-pill').forEach(p => p.classList.remove('on'));
+    pill.classList.add('on');
+    renderAeMusclePills(pill.dataset.aecat);
+  });
+
+  document.getElementById('ae-equip-grid').addEventListener('click', e => {
+    const pill = e.target.closest('.toggle-pill[data-aeequip]');
+    if (!pill) return;
+    document.querySelectorAll('#ae-equip-grid .toggle-pill').forEach(p => p.classList.remove('on'));
+    pill.classList.add('on');
+  });
+
+  document.getElementById('ae-save-btn').addEventListener('click', () => {
+    const name = document.getElementById('ae-name').value.trim();
+    if (!name) { document.getElementById('ae-name').focus(); return; }
+
+    const cat    = document.querySelector('#ae-cat-grid .toggle-pill.on')?.dataset.aecat || 'upper_body';
+    const muscle = document.querySelector('#ae-muscle-grid .toggle-pill.on')?.dataset.aemuscle || MUSCLE_GROUPS[cat][0];
+    const equip  = document.querySelector('#ae-equip-grid .toggle-pill.on')?.dataset.aeequip || 'bodyweight';
+
+    const custom = getCustomExercises();
+    custom.push({ id: String(Date.now()), name, muscle_group: muscle, equipment: equip, category: cat });
+    saveCustomExercises(custom);
+    populateExerciseDatelist();
+    renderLibrary();
+    closeAddExerciseSheet();
+  });
+
+  // Close add-exercise sheet when overlay is tapped
+  document.getElementById('overlay').addEventListener('click', () => {
+    closeAddExerciseSheet();
+    closeSheet();
+  });
+
+  // Delete custom exercise
+  document.getElementById('exercise-list').addEventListener('click', e => {
+    const btn = e.target.closest('.ex-delete[data-exid]');
+    if (!btn) return;
+    const updated = getCustomExercises().filter(ex => ex.id !== btn.dataset.exid);
+    saveCustomExercises(updated);
+    populateExerciseDatelist();
+    renderLibrary();
+  });
+
   // ── Library ──────────────────────────────────────────
   function renderLibrary() {
-    const query = document.getElementById('search').value.toLowerCase().trim();
+    const query   = document.getElementById('search').value.toLowerCase().trim();
     const container = document.getElementById('exercise-list');
-    const cats = currentCat === 'all' ? Object.keys(exercises) : [currentCat];
+    const customs = getCustomExercises();
+    const cats    = currentCat === 'all' ? Object.keys(exercises) : [currentCat];
 
     let html = '';
     for (const cat of cats) {
-      const items = (exercises[cat] || []).filter(ex =>
+      const builtIn   = exercises[cat] || [];
+      const catCustom = customs.filter(ex => ex.category === cat);
+      const all       = [
+        ...builtIn.map(ex => ({ ...ex, custom: false })),
+        ...catCustom.map(ex => ({ ...ex, custom: true }))
+      ];
+      const items = all.filter(ex =>
         !query ||
         ex.name.toLowerCase().includes(query) ||
         ex.muscle_group.toLowerCase().includes(query) ||
@@ -877,11 +1051,12 @@
         <div class="section-title">${label}</div>
         <div class="exercise-list">
           ${items.map(ex => `
-            <div class="exercise-card">
+            <div class="exercise-card${ex.custom ? ' custom-card' : ''}">
               <span class="exercise-name">${ex.name}</span>
               <div class="exercise-meta">
                 <span class="badge badge-muscle">${ex.muscle_group.replace(/_/g, ' ')}</span>
                 <span class="badge badge-equip">${ex.equipment.replace('_', ' / ')}</span>
+                ${ex.custom ? `<button class="ex-delete" data-exid="${ex.id}" aria-label="Remove">&#x2715;</button>` : ''}
               </div>
             </div>`).join('')}
         </div>
@@ -1264,7 +1439,6 @@
   }
 
   document.getElementById('open-sheet-btn').addEventListener('click', openSheet);
-  document.getElementById('overlay').addEventListener('click', closeSheet);
   document.getElementById('cancel-btn').addEventListener('click', closeSheet);
 
   document.getElementById('wtype-grid').addEventListener('click', e => {
