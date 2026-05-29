@@ -559,8 +559,53 @@
     .weight-row > div:first-child { flex: 1; }
     .weight-row > div:last-child { width: 110px; }
 
-    .sets-reps-row { display: flex; gap: 0.75rem; }
-    .sets-reps-row > div { flex: 1; }
+    .sets-section { display: flex; flex-direction: column; gap: 0.5rem; }
+
+    .set-row {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .set-label {
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: var(--muted);
+      width: 44px;
+      flex-shrink: 0;
+    }
+    .set-row .field-input {
+      flex: 1;
+      min-width: 0;
+      padding: 0.5rem 0.7rem;
+    }
+    .set-x {
+      font-size: 0.8rem;
+      color: var(--muted);
+      flex-shrink: 0;
+    }
+    .set-remove {
+      background: none;
+      border: none;
+      color: var(--muted);
+      font-size: 1rem;
+      cursor: pointer;
+      padding: 0 0.15rem;
+      flex-shrink: 0;
+      line-height: 1;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .set-remove:active { color: var(--accent); }
+    .add-set-btn {
+      align-self: flex-start;
+      background: none;
+      border: none;
+      color: var(--accent);
+      font-size: 0.82rem;
+      font-weight: 700;
+      cursor: pointer;
+      padding: 0.25rem 0;
+      -webkit-tap-highlight-color: transparent;
+    }
 
     #weight-field { display: block; }
     #weight-field.hidden { display: none; }
@@ -732,19 +777,11 @@
       </div>
     </div>
 
-    <div id="weight-field">
-      <div class="field-label">Weight (lbs)</div>
-      <input class="field-input" type="number" id="f-weight" placeholder="0" min="0" step="2.5" inputmode="decimal" />
-    </div>
-
-    <div class="sets-reps-row">
-      <div>
-        <div class="field-label">Sets</div>
-        <input class="field-input" type="number" id="f-sets" placeholder="0" min="1" step="1" inputmode="numeric" />
-      </div>
-      <div>
-        <div class="field-label">Reps</div>
-        <input class="field-input" type="number" id="f-reps" placeholder="0" min="1" step="1" inputmode="numeric" />
+    <div>
+      <div class="field-label">Sets</div>
+      <div class="sets-section">
+        <div id="sets-container"></div>
+        <button type="button" class="add-set-btn" id="add-set-btn">+ Add Set</button>
       </div>
     </div>
 
@@ -918,12 +955,20 @@
     function lastLoggedLine(ex) {
       const log = getLastLogged(ex.name);
       if (!log) return '';
-      const parts = [];
-      if (log.weightType === 'bodyweight') parts.push('Bodyweight');
-      else if (log.weight) parts.push(`${log.weight} lbs (${equipLabel(log.weightType)})`);
-      if (log.sets && log.reps) parts.push(`${log.sets}×${log.reps}`);
-      else if (log.reps) parts.push(`${log.reps} reps`);
-      return parts.length ? `<div class="workout-last">Last: ${parts.join(' &middot; ')}</div>` : '';
+      const bw = log.weightType === 'bodyweight';
+      let setsStr = '';
+      if (Array.isArray(log.sets) && log.sets.length) {
+        if (bw) {
+          setsStr = log.sets.map(s => s.reps ?? '?').join('/') + ' reps';
+        } else {
+          setsStr = log.sets.map(s => `${s.weight ?? '?'}×${s.reps ?? '?'}`).join(' / ');
+        }
+      } else if (log.sets && log.reps) {
+        setsStr = `${log.sets}×${log.reps}`;
+      }
+      const parts = [bw ? 'Bodyweight' : equipLabel(log.weightType)];
+      if (setsStr) parts.push(setsStr);
+      return `<div class="workout-last">Last: ${parts.join(' &middot; ')}</div>`;
     }
 
     document.getElementById('workout-result').innerHTML = `
@@ -1068,6 +1113,23 @@
     return wtype;
   }
 
+  function formatSetsDisplay(entry) {
+    const bw = entry.weightType === 'bodyweight';
+    // New format: sets is an array
+    if (Array.isArray(entry.sets) && entry.sets.length) {
+      if (bw) {
+        const reps = entry.sets.map(s => s.reps ?? '?').join(' / ');
+        return `<span class="badge badge-equip">${reps} reps</span>`;
+      }
+      const str = entry.sets.map(s => `${s.weight ?? '?'}×${s.reps ?? '?'}`).join(' &nbsp;/&nbsp; ');
+      return `<span class="badge badge-muscle" style="letter-spacing:0">${str}</span>`;
+    }
+    // Old format: sets and reps are numbers
+    if (entry.weight) return `<span class="badge badge-muscle">${entry.weight} lbs</span>${entry.sets || entry.reps ? `<span class="badge badge-equip">${entry.sets ?? '—'}&times;${entry.reps ?? '—'}</span>` : ''}`;
+    if (entry.sets || entry.reps) return `<span class="badge badge-equip">${entry.sets ?? '—'} sets &times; ${entry.reps ?? '—'} reps</span>`;
+    return '';
+  }
+
   function renderJournal() {
     let entries = getJournal();
     const container = document.getElementById('journal-list');
@@ -1102,12 +1164,7 @@
             </div>
             <div class="journal-meta">
               <span class="badge badge-equip">${equipBadgeLabel(entry.weightType)}</span>
-              ${entry.weightType !== 'bodyweight' && entry.weight
-                ? `<span class="badge badge-muscle">${entry.weight} lbs</span>`
-                : ''}
-              ${entry.sets || entry.reps
-                ? `<span class="badge badge-equip">${entry.sets ?? '—'} sets &times; ${entry.reps ?? '—'} reps</span>`
-                : ''}
+              ${formatSetsDisplay(entry)}
             </div>
             ${entry.comment ? `<div class="journal-comment">${escHtml(entry.comment)}</div>` : ''}
           </div>`).join('')}
@@ -1144,17 +1201,57 @@
     return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
   }
 
+  // ── Set rows state ─────────────────────────────────────
+  let formSets = [{ weight: '', reps: '' }];
+
+  function isBodyweightSelected() {
+    return document.querySelector('.wtype-pill.on')?.dataset.wtype === 'bodyweight';
+  }
+
+  function syncFormSets() {
+    document.querySelectorAll('#sets-container .set-row').forEach((row, i) => {
+      if (!formSets[i]) return;
+      const w = row.querySelector('.set-weight-input');
+      const r = row.querySelector('.set-reps-input');
+      if (w) formSets[i].weight = w.value;
+      if (r) formSets[i].reps  = r.value;
+    });
+  }
+
+  function renderSetRows() {
+    const bw = isBodyweightSelected();
+    document.getElementById('sets-container').innerHTML = formSets.map((s, i) => `
+      <div class="set-row">
+        <span class="set-label">Set ${i + 1}</span>
+        ${!bw ? `<input class="field-input set-weight-input" type="number" placeholder="lbs" value="${s.weight}" min="0" step="2.5" inputmode="decimal" />
+                 <span class="set-x">×</span>` : ''}
+        <input class="field-input set-reps-input" type="number" placeholder="reps" value="${s.reps}" min="1" step="1" inputmode="numeric" />
+        ${formSets.length > 1 ? `<button type="button" class="set-remove" data-idx="${i}">&#x2715;</button>` : ''}
+      </div>`).join('');
+
+    document.querySelectorAll('#sets-container .set-remove').forEach(btn => {
+      btn.onclick = () => {
+        syncFormSets();
+        formSets.splice(parseInt(btn.dataset.idx), 1);
+        renderSetRows();
+      };
+    });
+  }
+
+  document.getElementById('add-set-btn').addEventListener('click', () => {
+    syncFormSets();
+    formSets.push({ weight: '', reps: '' });
+    renderSetRows();
+  });
+
   function openSheet() {
     document.getElementById('f-date').value = todayStr();
     document.getElementById('f-exercise').value = '';
-    document.getElementById('f-weight').value = '';
-    document.getElementById('f-sets').value = '';
-    document.getElementById('f-reps').value = '';
     document.getElementById('f-comment').value = '';
-    // Reset weight type to bodyweight
     document.querySelectorAll('.wtype-pill').forEach(p => p.classList.remove('on'));
     document.querySelector('.wtype-pill[data-wtype="bodyweight"]').classList.add('on');
-    document.getElementById('weight-field').classList.add('hidden');
+    formSets = [{ weight: '', reps: '' }];
+    renderSetRows();
 
     document.getElementById('overlay').classList.add('open');
     document.getElementById('entry-sheet').classList.add('open');
@@ -1170,39 +1267,37 @@
   document.getElementById('overlay').addEventListener('click', closeSheet);
   document.getElementById('cancel-btn').addEventListener('click', closeSheet);
 
-  // Weight type toggle
   document.getElementById('wtype-grid').addEventListener('click', e => {
     const pill = e.target.closest('.wtype-pill');
     if (!pill) return;
+    syncFormSets();
     document.querySelectorAll('.wtype-pill').forEach(p => p.classList.remove('on'));
     pill.classList.add('on');
-    const isBodyweight = pill.dataset.wtype === 'bodyweight';
-    document.getElementById('weight-field').classList.toggle('hidden', isBodyweight);
+    renderSetRows();
   });
 
   document.getElementById('save-btn').addEventListener('click', () => {
     const exercise = document.getElementById('f-exercise').value.trim();
-    if (!exercise) {
-      document.getElementById('f-exercise').focus();
-      return;
-    }
+    if (!exercise) { document.getElementById('f-exercise').focus(); return; }
 
+    syncFormSets();
     const activePill = document.querySelector('.wtype-pill.on');
     const weightType = activePill ? activePill.dataset.wtype : 'bodyweight';
-    const weightVal  = document.getElementById('f-weight').value;
-    const weight     = weightType !== 'bodyweight' && weightVal ? parseFloat(weightVal) : null;
+    const bw = weightType === 'bodyweight';
 
-    const setsVal = document.getElementById('f-sets').value;
-    const repsVal = document.getElementById('f-reps').value;
+    const sets = formSets
+      .map(s => ({
+        weight: !bw && s.weight ? parseFloat(s.weight) : null,
+        reps:   s.reps ? parseInt(s.reps) : null
+      }))
+      .filter(s => s.reps !== null || s.weight !== null);
 
     const entry = {
       id:         String(Date.now()),
       date:       document.getElementById('f-date').value || todayStr(),
       exercise,
       weightType,
-      weight,
-      sets:       setsVal ? parseInt(setsVal) : null,
-      reps:       repsVal ? parseInt(repsVal) : null,
+      sets,
       comment:    document.getElementById('f-comment').value.trim()
     };
 
