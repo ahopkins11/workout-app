@@ -987,25 +987,27 @@
       </div>
       <div class="cal-grid">${grid}</div>`;
 
-    document.getElementById('cal-prev').addEventListener('click', () => {
+  }
+
+  document.getElementById('calendar').addEventListener('click', e => {
+    if (e.target.closest('#cal-prev')) {
       calMonth--; if (calMonth < 0) { calMonth = 11; calYear--; }
       renderCalendar();
-    });
-    document.getElementById('cal-next').addEventListener('click', () => {
+      return;
+    }
+    if (e.target.closest('#cal-next')) {
       calMonth++; if (calMonth > 11) { calMonth = 0; calYear++; }
       renderCalendar();
-    });
-
-    document.getElementById('calendar').addEventListener('click', e => {
-      const btn = e.target.closest('.cal-day[data-date]');
-      if (!btn) return;
-      const ds = btn.dataset.date;
-      selectedDate = selectedDate === ds ? null : ds;
-      renderCalendar();
-      renderJournal();
-      updateFilterBar();
-    });
-  }
+      return;
+    }
+    const btn = e.target.closest('.cal-day[data-date]');
+    if (!btn) return;
+    const ds = btn.dataset.date;
+    selectedDate = selectedDate === ds ? null : ds;
+    renderCalendar();
+    renderJournal();
+    updateFilterBar();
+  });
 
   function updateFilterBar() {
     const bar   = document.getElementById('cal-filter-bar');
