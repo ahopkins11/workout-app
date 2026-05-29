@@ -1036,12 +1036,14 @@
         ...builtIn.map(ex => ({ ...ex, custom: false })),
         ...catCustom.map(ex => ({ ...ex, custom: true }))
       ];
-      const items = all.filter(ex =>
-        !query ||
-        ex.name.toLowerCase().includes(query) ||
-        ex.muscle_group.toLowerCase().includes(query) ||
-        ex.equipment.toLowerCase().includes(query)
-      );
+      const items = all
+        .filter(ex =>
+          !query ||
+          ex.name.toLowerCase().includes(query) ||
+          ex.muscle_group.toLowerCase().includes(query) ||
+          ex.equipment.toLowerCase().includes(query)
+        )
+        .sort((a, b) => a.name.localeCompare(b.name));
       if (!items.length) continue;
       const label = cat.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
       html += `<div class="section">
