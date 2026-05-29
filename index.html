@@ -690,13 +690,8 @@
 <!-- ── Library Screen ── -->
 <div id="library-screen" class="screen active">
   <div class="screen-header">
-    <div class="lib-header-row">
-      <div>
-        <h1>Workout</h1>
-        <p>Exercise Library</p>
-      </div>
-      <button class="add-entry-btn" id="open-add-exercise-btn">+ Add</button>
-    </div>
+    <h1>Workout</h1>
+    <p>Exercise Library</p>
   </div>
 
   <nav id="cat-nav">
@@ -705,6 +700,8 @@
     <button class="pill-btn" data-cat="lower_body">Lower Body</button>
     <button class="pill-btn" data-cat="core">Core</button>
   </nav>
+
+  <button class="add-entry-btn" id="open-add-exercise-btn" style="align-self:flex-start; margin: 0 1.25rem 0.5rem;">+ Add Exercise</button>
 
   <input id="search" type="search" placeholder="Search exercises..." />
 
