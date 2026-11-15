@@ -282,7 +282,9 @@
       text-overflow: ellipsis;
     }
     .workout-sub { font-size: 0.72rem; color: var(--muted); margin-top: 0.15rem; text-transform: capitalize; }
-    .workout-last { font-size: 0.72rem; color: var(--accent); margin-top: 0.2rem; opacity: 0.85; }
+    .workout-last { font-size: 0.78rem; color: var(--accent); margin-top: 0.3rem; font-weight: 600; }
+    .workout-last-label { font-weight: 800; }
+    .jw-last { padding-left: 1.6rem; margin-top: 0.25rem; }
 
     .divider { height: 1px; background: rgba(255,255,255,0.05); margin: 1rem 0; }
 
@@ -1065,14 +1067,17 @@
     localStorage.setItem('workout-journal', JSON.stringify(entries));
   }
 
-  function getLastLogged(exerciseName) {
-    const entries = getJournal();
+  // Most recent log of an exercise by date. With beforeDate, only looks at
+  // days before it (so today's sets don't hide last session's numbers).
+  function getLastLogged(exerciseName, beforeDate = null) {
     const name = exerciseName.toLowerCase();
-    // Entries are stored oldest-first; find the last matching one
-    for (let i = entries.length - 1; i >= 0; i--) {
-      if (entries[i].exercise.toLowerCase() === name) return entries[i];
+    let best = null;
+    for (const e of getJournal()) {
+      if (e.exercise.toLowerCase() !== name) continue;
+      if (beforeDate && e.date >= beforeDate) continue;
+      if (!best || e.date >= best.date) best = e;
     }
-    return null;
+    return best;
   }
 
   // ── Custom exercises ──────────────────────────────────
@@ -1286,8 +1291,8 @@
 
   const equipLabel = e => e.replace('_', ' / ').replace(/\b\w/g, c => c.toUpperCase());
 
-  function lastLoggedLine(ex) {
-    const log = getLastLogged(ex.name);
+  function lastLoggedLine(ex, beforeDate = todayStr()) {
+    const log = getLastLogged(ex.name, beforeDate);
     if (!log) return '';
     const bw = log.weightType === 'bodyweight';
     let setsStr = '';
@@ -1302,7 +1307,9 @@
     }
     const parts = [bw ? 'Bodyweight' : equipLabel(log.weightType)];
     if (setsStr) parts.push(setsStr);
-    return `<div class="workout-last">Last: ${parts.join(' &middot; ')}</div>`;
+    const [y, m, d] = log.date.split('-').map(Number);
+    const when = new Date(y, m - 1, d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    return `<div class="workout-last"><span class="workout-last-label">Last (${when}):</span> ${parts.join(' &middot; ')}</div>`;
   }
 
   function renderWorkoutResult(title, workout, action, scroll = true, note = '', target = 'workout-result') {
@@ -1640,6 +1647,7 @@
             <span class="jw-name">${escHtml(name)}</span>
             <button class="jw-log-btn" data-log-ex="${escAttr(name)}" data-log-date="${date}">+ Log</button>
           </div>
+          ${lastLoggedLine({ name }, date).replace('class="workout-last"', 'class="workout-last jw-last"')}
           ${logged.map(e => `
             <div class="jw-logged">
               <div class="journal-meta">
@@ -1815,17 +1823,21 @@
     document.getElementById('f-comment').value = '';
 
     // Weight type: what you used last time, else the library's equipment, else bodyweight
+    // Sets: start from last session's weights and reps so you only change what's different
     let wtype = 'bodyweight';
+    formSets = [{ weight: '', reps: '' }];
     if (exercise) {
-      const last = getLastLogged(exercise);
+      const last = getLastLogged(exercise, prefill.date || todayStr());
       const lib  = resolveExercise(exercise);
       wtype = last?.weightType || lib.equipment || 'bodyweight';
+      if (last && Array.isArray(last.sets) && last.sets.length) {
+        formSets = last.sets.map(s => ({ weight: s.weight ?? '', reps: s.reps ?? '' }));
+      }
     }
     document.querySelectorAll('.wtype-pill').forEach(p => p.classList.remove('on'));
     (document.querySelector(`.wtype-pill[data-wtype="${wtype}"]`) ||
      document.querySelector('.wtype-pill[data-wtype="bodyweight"]')).classList.add('on');
 
-    formSets = [{ weight: '', reps: '' }];
     renderSetRows();
 
     document.getElementById('overlay').classList.add('open');
