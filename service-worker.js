@@ -1,10 +1,10 @@
-const CACHE = 'workout-v2';
+const CACHE = 'workout-v3';
 const ASSETS = [
-  '/',
-  '/index.html',
-  '/exercises.json',
-  '/workouts.json',
-  '/manifest.json'
+  './',
+  './index.html',
+  './exercises.json',
+  './workouts.json',
+  './manifest.json'
 ];
 
 self.addEventListener('install', e => {
