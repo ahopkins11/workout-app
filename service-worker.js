@@ -3,6 +3,7 @@ const ASSETS = [
   '/',
   '/index.html',
   '/exercises.json',
+  '/workouts.json',
   '/manifest.json'
 ];
 

@@ -718,6 +718,27 @@
       flex-shrink: 0;
     }
     .saved-empty { color: var(--muted); font-size: 0.82rem; line-height: 1.5; }
+
+    .workout-item.has-details { align-items: flex-start; }
+    .workout-item.has-details .workout-name { white-space: normal; }
+    .workout-detail {
+      font-size: 0.78rem;
+      color: var(--text);
+      opacity: 0.8;
+      margin-top: 0.2rem;
+      line-height: 1.4;
+    }
+    .workout-note {
+      background: rgba(233,69,96,0.12);
+      color: var(--accent);
+      font-size: 0.78rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      border-radius: 10px;
+      padding: 0.6rem 0.9rem;
+      margin-bottom: 0.5rem;
+    }
     .field-hint { font-size: 0.72rem; color: var(--muted); margin-top: 0.35rem; }
   </style>
 </head>
@@ -962,19 +983,21 @@
 
 <script>
   let exercises = {};
+  let builtInWorkouts = [];
   let currentCat = 'all';
   let lastMuscles = [];
   let lastEquip = [];
 
   // ── Data ──────────────────────────────────────────────
   async function loadExercises() {
-    const res = await fetch('exercises.json');
-    exercises = await res.json();
+    const [exRes, wRes] = await Promise.all([fetch('exercises.json'), fetch('workouts.json')]);
+    exercises = await exRes.json();
+    try { builtInWorkouts = await wRes.json(); } catch { builtInWorkouts = []; }
     renderLibrary();
     populateExerciseDatelist();
     renderSavedWorkouts();
     const pick = getTodayPickId();
-    const picked = pick && getSavedWorkouts().find(w => w.id === pick);
+    const picked = pick && getAllWorkouts().find(w => w.id === pick);
     if (picked) showSavedWorkout(picked, false);
   }
 
@@ -1231,13 +1254,14 @@
     return `<div class="workout-last">Last: ${parts.join(' &middot; ')}</div>`;
   }
 
-  function renderWorkoutResult(title, workout, action, scroll = true) {
+  function renderWorkoutResult(title, workout, action, scroll = true, note = '') {
     const result = document.getElementById('workout-result');
     result.innerHTML = `
       <div class="result-header">
         <span class="result-title">${title}</span>
         <button class="regen-btn" id="regen-btn">${action.label}</button>
       </div>
+      ${note ? `<div class="workout-note">${escHtml(note)}</div>` : ''}
       <div class="exercise-list">
         ${workout.map((ex, i) => {
           const sub = [
@@ -1245,11 +1269,12 @@
             ex.equipment ? equipLabel(ex.equipment) : ''
           ].filter(Boolean).join(' &middot; ');
           return `
-          <div class="workout-item">
+          <div class="workout-item${ex.details ? ' has-details' : ''}">
             <div class="workout-num">${i + 1}</div>
             <div class="workout-info">
               <div class="workout-name">${escHtml(ex.name)}</div>
               ${sub ? `<div class="workout-sub">${sub}</div>` : ''}
+              ${ex.details ? ex.details.map(d => `<div class="workout-detail">${escHtml(d)}</div>`).join('') : ''}
               ${lastLoggedLine(ex)}
             </div>
           </div>`;
@@ -1283,15 +1308,23 @@
     else localStorage.removeItem('today-workout');
   }
 
-  // Look up library info (muscle group, equipment) for an exercise name
-  function findExercise(name) {
-    const n = name.toLowerCase();
+  // Built-in workouts (workouts.json) first, then ones added in the app
+  function getAllWorkouts() {
+    return [...builtInWorkouts.map(w => ({ ...w, builtIn: true })), ...getSavedWorkouts()];
+  }
+
+  // Exercise items are either a name string or { name, details: [...] }.
+  // Library info (muscle group, equipment) is added when the name matches.
+  function resolveExercise(item) {
+    const ex = typeof item === 'string' ? { name: item } : item;
+    const n = ex.name.toLowerCase();
     const all = [...Object.values(exercises).flat(), ...getCustomExercises()];
-    return all.find(ex => ex.name.toLowerCase() === n) || { name, muscle_group: '', equipment: '' };
+    const lib = all.find(e => e.name.toLowerCase() === n) || { muscle_group: '', equipment: '' };
+    return { ...lib, ...ex };
   }
 
   function renderSavedWorkouts() {
-    const list = getSavedWorkouts();
+    const list = getAllWorkouts();
     const pick = getTodayPickId();
     const container = document.getElementById('saved-workouts');
     if (!list.length) {
@@ -1305,14 +1338,14 @@
           <div class="workout-sub">${w.exercises.length} exercise${w.exercises.length === 1 ? '' : 's'}</div>
         </div>
         ${w.id === pick ? '<span class="today-tag">Today</span>' : ''}
-        <button class="ex-delete" data-delwid="${w.id}" aria-label="Delete workout">&#x2715;</button>
+        ${w.builtIn ? '' : `<button class="ex-delete" data-delwid="${w.id}" aria-label="Delete workout">&#x2715;</button>`}
       </div>`).join('');
   }
 
   function showSavedWorkout(w, scroll = true) {
     renderWorkoutResult(
       `Today: ${escHtml(w.name)}`,
-      w.exercises.map(findExercise),
+      w.exercises.map(resolveExercise),
       {
         label: 'Clear',
         onClick: () => {
@@ -1321,7 +1354,8 @@
           document.getElementById('workout-result').innerHTML = '';
         }
       },
-      scroll
+      scroll,
+      w.note
     );
   }
 
@@ -1341,7 +1375,7 @@
     }
     const card = e.target.closest('.saved-workout[data-wid]');
     if (!card) return;
-    const w = getSavedWorkouts().find(x => x.id === card.dataset.wid);
+    const w = getAllWorkouts().find(x => x.id === card.dataset.wid);
     if (!w) return;
     setTodayPickId(w.id);
     renderSavedWorkouts();

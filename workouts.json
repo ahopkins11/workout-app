@@ -1,0 +1,84 @@
+[
+  {
+    "id": "builtin-legs-quads-glutes",
+    "name": "Legs (Quads & Glutes)",
+    "note": "Stretch and roll out",
+    "exercises": [
+      { "name": "Goblet Squats with Smith Machine", "details": ["3x10-12 (Medium weight)"] },
+      { "name": "Leg Press", "details": ["3x8-10 (Medium weight, have half of your feet hanging off the bottom of the platform)"] },
+      { "name": "Leg Extensions", "details": [
+        "Single leg: 3x12-15 (Light weight, hold and slowly come down)",
+        "Both legs: 1x4-6 (Heavy weight)",
+        "Both legs: 1 burnout set (Medium weight)"
+      ] },
+      { "name": "Abductors and Adductors", "details": ["3x15 (Medium weight)"] },
+      { "name": "Hip Thrusts", "details": ["3x8-10 (Heavy weight)"] }
+    ]
+  },
+  {
+    "id": "builtin-chest-tricep",
+    "name": "Chest & Tricep",
+    "note": "Stretch with resistance band",
+    "exercises": [
+      { "name": "Flat Bench", "details": ["3x8-12 (Medium weight)", "With a spotter: 3x6 (Heavy)"] },
+      { "name": "Incline Dumbbell Bench", "details": ["3x8-12 (Medium/Heavy)"] },
+      { "name": "Chest Flies", "details": ["2-3x10-12 each:", "Low to high", "High to low", "Seated middle fly"] },
+      { "name": "Single Hand Tricep Extension", "details": ["3x10-12 (Get a good squeeze at full extension)"] },
+      { "name": "Single Hand Reverse Curl", "details": ["3x8-10 (Fairly heavy, squeeze isn't as important)"] },
+      { "name": "Overhead Press or Dumbbell Skull Crushers", "details": ["3x12 (HEAVY and DIE)"] },
+      { "name": "Dips", "details": ["3 sets to failure"] }
+    ]
+  },
+  {
+    "id": "builtin-back-biceps",
+    "name": "Back & Biceps",
+    "exercises": [
+      { "name": "Bent Over Rows", "details": [
+        "1 warmup set to get loose",
+        "3x8-12 (Shoot for 12 on the first, then go up and get 10, then up again and get 8)",
+        "Keep your chest forward and your lower back arched. Pull your elbows back, not your shoulders up."
+      ] },
+      { "name": "Wide Grip Lat Pulldowns", "details": ["3x12 (Medium weight, don't go all the way up, keep a little bend in your elbows between reps)"] },
+      { "name": "T-Bar Rows", "details": [
+        "3x failure (HEAVY, fight for every rep, again pull your elbows back)",
+        "Alternative: Plate Loaded Chest Supported Row (same set count)"
+      ] },
+      { "name": "Rope Pullovers", "details": ["3x10-12 (Medium weight, slow controlled reps with full stretch)"] },
+      { "name": "Pull Ups", "details": ["3x failure"] },
+      { "name": "Single Arm Preacher Curl", "details": ["3x8-10 (Medium/Light weight)"] },
+      { "name": "Super Set Seated Incline Curls", "details": [
+        "3x8-10 (Medium weight)",
+        "3x4-6 (Light weight)",
+        "Do one medium set then immediately one light set"
+      ] },
+      { "name": "Rope Hammer Curls", "details": ["3x8-10 (Heavy weight, but slow and controlled)"] }
+    ]
+  },
+  {
+    "id": "builtin-shoulders-forearms",
+    "name": "Shoulders & Forearms",
+    "exercises": [
+      { "name": "I's, Y's, T's", "details": ["Just to warm up"] },
+      { "name": "Dumbbell (or Smith Machine) Shoulder Press", "details": ["3x10 (Medium/Heavy weight)"] },
+      { "name": "Lateral Raises", "details": ["3x10-12 (Medium/Light weight)"] },
+      { "name": "Face Pulls (or Rear Delt Flies)", "details": ["3x10 (Medium weight)"] },
+      { "name": "Seated Single Hand Forearm Curls", "details": ["4x15 each hand (HEAVY AS FUCK)"] },
+      { "name": "Overhead Forearm Push Down", "details": ["3x20 (HEAVY AS FUCK)"] }
+    ]
+  },
+  {
+    "id": "builtin-hamstrings-calves",
+    "name": "Hamstrings & Calves",
+    "note": "Roll out and stretch",
+    "exercises": [
+      { "name": "Leg Press", "details": ["3x8-10 (Heavy weight, put the top of your toes at the top of the platform)"] },
+      { "name": "Hamstring Curls", "details": [
+        "Single leg: 3x10 (Light weight, SQUEEZE at the bottom)",
+        "Both legs: 1x failure (Heavy weight)"
+      ] },
+      { "name": "RDL", "details": ["3x10-12 (Medium weight, slow and controlled)", "Smith machine or regular barbell"] },
+      { "name": "Calf Raise", "details": ["4x25 (Medium/Heavy weight)"] },
+      { "name": "Stair Master", "details": ["10-15 minutes"] }
+    ]
+  }
+]
