@@ -719,6 +719,58 @@
     }
     .saved-empty { color: var(--muted); font-size: 0.82rem; line-height: 1.5; }
 
+    /* ── Day's workout card in the journal ── */
+    .jw-card { border: 1.5px solid rgba(233,69,96,0.35); }
+    .jw-label {
+      font-size: 0.65rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: var(--accent);
+      margin-bottom: 0.15rem;
+    }
+    .jw-row {
+      border-top: 1px solid rgba(255,255,255,0.06);
+      margin-top: 0.6rem;
+      padding-top: 0.6rem;
+    }
+    .jw-row-top { display: flex; align-items: center; gap: 0.5rem; }
+    .jw-check {
+      width: 18px; height: 18px;
+      border-radius: 50%;
+      border: 1.5px solid var(--muted);
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.65rem;
+      font-weight: 800;
+      color: #fff;
+    }
+    .jw-row.done .jw-check { background: var(--accent); border-color: var(--accent); }
+    .jw-name { flex: 1; font-size: 0.88rem; font-weight: 500; text-transform: capitalize; }
+    .jw-row:not(.done) .jw-name { color: var(--muted); }
+    .jw-log-btn {
+      padding: 0.25rem 0.7rem;
+      border-radius: 999px;
+      border: 1.5px solid var(--accent);
+      background: transparent;
+      color: var(--accent);
+      font-size: 0.72rem;
+      font-weight: 700;
+      cursor: pointer;
+      flex-shrink: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .jw-log-btn:active { background: var(--accent); color: #fff; }
+    .jw-logged {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      padding-left: 1.6rem;
+    }
+    .jw-row .journal-comment { padding-left: 1.6rem; margin-top: 0.35rem; }
+
     .workout-item.has-details { align-items: flex-start; }
     .workout-item.has-details .workout-name { white-space: normal; }
     .workout-detail {
@@ -995,6 +1047,7 @@
     try { builtInWorkouts = await wRes.json(); } catch { builtInWorkouts = []; }
     renderLibrary();
     populateExerciseDatelist();
+    migrateTodayPick();
     renderSavedWorkouts();
     const pick = getTodayPickId();
     const picked = pick && getAllWorkouts().find(w => w.id === pick);
@@ -1222,10 +1275,6 @@
       return;
     }
 
-    // A random workout replaces today's saved pick
-    setTodayPickId(null);
-    renderSavedWorkouts();
-
     renderWorkoutResult(
       `${workout.length} Exercise${workout.length > 1 ? 's' : ''}`,
       workout,
@@ -1296,16 +1345,43 @@
     localStorage.setItem('saved-workouts', JSON.stringify(arr));
   }
 
-  // Today's pick resets automatically on a new day
+  // Workout chosen for each day: { "YYYY-MM-DD": { id, name, exercises: [names] } }.
+  // The exercise names are copied in so the journal keeps working even if
+  // the workout is later edited or deleted.
+  function getDayWorkouts() {
+    try { return JSON.parse(localStorage.getItem('day-workouts') || '{}'); }
+    catch { return {}; }
+  }
+  function saveDayWorkouts(map) {
+    localStorage.setItem('day-workouts', JSON.stringify(map));
+  }
+
   function getTodayPickId() {
-    try {
-      const p = JSON.parse(localStorage.getItem('today-workout') || 'null');
-      return p && p.date === todayStr() ? p.id : null;
-    } catch { return null; }
+    return getDayWorkouts()[todayStr()]?.id || null;
   }
   function setTodayPickId(id) {
-    if (id) localStorage.setItem('today-workout', JSON.stringify({ date: todayStr(), id }));
-    else localStorage.removeItem('today-workout');
+    const map = getDayWorkouts();
+    const date = todayStr();
+    const w = id && getAllWorkouts().find(x => x.id === id);
+    if (w) {
+      map[date] = {
+        id: w.id,
+        name: w.name,
+        exercises: w.exercises.map(e => typeof e === 'string' ? e : e.name)
+      };
+    } else {
+      delete map[date];
+    }
+    saveDayWorkouts(map);
+  }
+
+  // One-time carry-over of today's pick from the old storage key
+  function migrateTodayPick() {
+    try {
+      const old = JSON.parse(localStorage.getItem('today-workout') || 'null');
+      localStorage.removeItem('today-workout');
+      if (old && old.date === todayStr() && !getTodayPickId()) setTodayPickId(old.id);
+    } catch {}
   }
 
   // Built-in workouts (workouts.json) first, then ones added in the app
@@ -1366,10 +1442,8 @@
       const w = getSavedWorkouts().find(x => x.id === id);
       if (!w || !confirm(`Delete "${w.name}"?`)) return;
       saveSavedWorkouts(getSavedWorkouts().filter(x => x.id !== id));
-      if (getTodayPickId() === id) {
-        setTodayPickId(null);
-        document.getElementById('workout-result').innerHTML = '';
-      }
+      // Keep it in the journal for today, just stop showing it here
+      if (getTodayPickId() === id) document.getElementById('workout-result').innerHTML = '';
       renderSavedWorkouts();
       return;
     }
@@ -1426,7 +1500,7 @@
 
   function renderCalendar() {
     const entries   = getJournal();
-    const entryDays = new Set(entries.map(e => e.date));
+    const entryDays = new Set([...entries.map(e => e.date), ...Object.keys(getDayWorkouts())]);
 
     const firstDay = new Date(calYear, calMonth, 1).getDay();
     const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
@@ -1550,32 +1624,73 @@
     return '';
   }
 
+  function renderDayWorkoutCard(date, dw, dayEntries, used) {
+    let done = 0;
+    const rows = dw.exercises.map(name => {
+      const logged = dayEntries.filter(e => e.exercise.toLowerCase() === name.toLowerCase());
+      logged.forEach(e => used.add(e.id));
+      if (logged.length) done++;
+      return `
+        <div class="jw-row${logged.length ? ' done' : ''}">
+          <div class="jw-row-top">
+            <span class="jw-check">${logged.length ? '&#10003;' : ''}</span>
+            <span class="jw-name">${escHtml(name)}</span>
+            <button class="jw-log-btn" data-log-ex="${escAttr(name)}" data-log-date="${date}">+ Log</button>
+          </div>
+          ${logged.map(e => `
+            <div class="jw-logged">
+              <div class="journal-meta">
+                <span class="badge badge-equip">${equipBadgeLabel(e.weightType)}</span>
+                ${formatSetsDisplay(e)}
+              </div>
+              <button class="journal-delete" data-id="${e.id}" aria-label="Delete">&#x2715;</button>
+            </div>
+            ${e.comment ? `<div class="journal-comment">${escHtml(e.comment)}</div>` : ''}`).join('')}
+        </div>`;
+    }).join('');
+
+    return `
+      <div class="journal-card jw-card">
+        <div class="journal-card-top">
+          <div>
+            <div class="jw-label">Workout &middot; ${done}/${dw.exercises.length} logged</div>
+            <div class="journal-exercise">${escHtml(dw.name)}</div>
+          </div>
+          <button class="journal-delete" data-dwdate="${date}" aria-label="Remove workout">&#x2715;</button>
+        </div>
+        ${rows}
+      </div>`;
+  }
+
   function renderJournal() {
-    let entries = getJournal();
+    const entries = getJournal();
+    const dayWorkouts = getDayWorkouts();
     const container = document.getElementById('journal-list');
 
-    if (selectedDate) entries = entries.filter(e => e.date === selectedDate);
+    let dates = [...new Set([...entries.map(e => e.date), ...Object.keys(dayWorkouts)])];
+    if (selectedDate) dates = dates.filter(d => d === selectedDate);
 
-    if (!entries.length) {
+    if (!dates.length) {
       container.innerHTML = selectedDate
         ? '<p class="empty">No workouts logged on this day.</p>'
-        : '<p class="empty">No workouts logged yet.<br>Tap "+ Log Workout" to add your first entry.</p>';
+        : '<p class="empty">No workouts logged yet.<br>Pick a workout on the Generate tab, or tap "+ Log Workout".</p>';
       return;
     }
 
-    // Group by date, sorted newest first
-    const groups = {};
-    for (const entry of entries) {
-      if (!groups[entry.date]) groups[entry.date] = [];
-      groups[entry.date].push(entry);
-    }
-    const sortedDates = Object.keys(groups).sort((a, b) => b.localeCompare(a));
+    // Newest first
+    const sortedDates = dates.sort((a, b) => b.localeCompare(a));
 
     let html = '';
     for (const date of sortedDates) {
-      const dayEntries = groups[date];
+      const allDayEntries = entries.filter(e => e.date === date);
+      const used = new Set();
+      const workoutCard = dayWorkouts[date]
+        ? renderDayWorkoutCard(date, dayWorkouts[date], allDayEntries, used)
+        : '';
+      const dayEntries = allDayEntries.filter(e => !used.has(e.id));
       html += `<div class="date-group">
         <div class="date-label">${formatDateLabel(date)}</div>
+        ${workoutCard}
         ${dayEntries.map(entry => `
           <div class="journal-card">
             <div class="journal-card-top">
@@ -1597,8 +1712,33 @@
   function escHtml(str) {
     return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   }
+  function escAttr(str) {
+    return escHtml(str).replace(/"/g, '&quot;');
+  }
 
   document.getElementById('journal-list').addEventListener('click', e => {
+    const logBtn = e.target.closest('.jw-log-btn[data-log-ex]');
+    if (logBtn) {
+      openSheet({ exercise: logBtn.dataset.logEx, date: logBtn.dataset.logDate });
+      return;
+    }
+
+    const dwBtn = e.target.closest('.journal-delete[data-dwdate]');
+    if (dwBtn) {
+      const date = dwBtn.dataset.dwdate;
+      if (!confirm('Remove this workout from the day? Exercises you already logged will stay.')) return;
+      const map = getDayWorkouts();
+      delete map[date];
+      saveDayWorkouts(map);
+      if (date === todayStr()) {
+        document.getElementById('workout-result').innerHTML = '';
+        renderSavedWorkouts();
+      }
+      renderCalendar();
+      renderJournal();
+      return;
+    }
+
     const btn = e.target.closest('.journal-delete[data-id]');
     if (!btn) return;
     const id = btn.dataset.id;
@@ -1664,18 +1804,35 @@
     renderSetRows();
   });
 
-  function openSheet() {
-    document.getElementById('f-date').value = todayStr();
-    document.getElementById('f-exercise').value = '';
+  // prefill: { exercise, date } — used by "+ Log" on a day's workout card
+  function openSheet(prefill = {}) {
+    const exercise = prefill.exercise || '';
+    document.getElementById('f-date').value = prefill.date || todayStr();
+    document.getElementById('f-exercise').value = exercise;
     document.getElementById('f-comment').value = '';
+
+    // Weight type: what you used last time, else the library's equipment, else bodyweight
+    let wtype = 'bodyweight';
+    if (exercise) {
+      const last = getLastLogged(exercise);
+      const lib  = resolveExercise(exercise);
+      wtype = last?.weightType || lib.equipment || 'bodyweight';
+    }
     document.querySelectorAll('.wtype-pill').forEach(p => p.classList.remove('on'));
-    document.querySelector('.wtype-pill[data-wtype="bodyweight"]').classList.add('on');
+    (document.querySelector(`.wtype-pill[data-wtype="${wtype}"]`) ||
+     document.querySelector('.wtype-pill[data-wtype="bodyweight"]')).classList.add('on');
+
     formSets = [{ weight: '', reps: '' }];
     renderSetRows();
 
     document.getElementById('overlay').classList.add('open');
     document.getElementById('entry-sheet').classList.add('open');
-    setTimeout(() => document.getElementById('f-exercise').focus(), 350);
+    setTimeout(() => {
+      const target = exercise
+        ? document.querySelector('#sets-container .field-input')
+        : document.getElementById('f-exercise');
+      target?.focus();
+    }, 350);
   }
 
   function closeSheet() {
@@ -1683,7 +1840,7 @@
     document.getElementById('entry-sheet').classList.remove('open');
   }
 
-  document.getElementById('open-sheet-btn').addEventListener('click', openSheet);
+  document.getElementById('open-sheet-btn').addEventListener('click', () => openSheet());
   document.getElementById('cancel-btn').addEventListener('click', closeSheet);
 
   document.getElementById('wtype-grid').addEventListener('click', e => {
