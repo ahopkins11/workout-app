@@ -1815,6 +1815,23 @@
     renderSetRows();
   });
 
+  // How many sets the day's workout plans for this exercise (null if unknown).
+  // Uses the exercise's "sets" field, or reads it from details like "3x8-12".
+  function plannedSetCount(exercise, date) {
+    const dw = getDayWorkouts()[date];
+    if (!dw) return null;
+    const w = getAllWorkouts().find(x => x.id === dw.id);
+    const n = exercise.toLowerCase();
+    const item = w?.exercises.find(e => (typeof e === 'string' ? e : e.name).toLowerCase() === n);
+    if (!item || typeof item === 'string') return null;
+    if (item.sets) return item.sets;
+    for (const d of item.details || []) {
+      const m = d.match(/(\d+)\s*(?:x|sets?\b)/i);
+      if (m) return parseInt(m[1]);
+    }
+    return null;
+  }
+
   // prefill: { exercise, date } — used by "+ Log" on a day's workout card
   function openSheet(prefill = {}) {
     const exercise = prefill.exercise || '';
@@ -1823,16 +1840,21 @@
     document.getElementById('f-comment').value = '';
 
     // Weight type: what you used last time, else the library's equipment, else bodyweight
-    // Sets: start from last session's weights and reps so you only change what's different
+    // Sets: one row per planned set in the day's workout, filled in with
+    // last session's weights and reps so you only change what's different
     let wtype = 'bodyweight';
     formSets = [{ weight: '', reps: '' }];
     if (exercise) {
-      const last = getLastLogged(exercise, prefill.date || todayStr());
+      const date = prefill.date || todayStr();
+      const last = getLastLogged(exercise, date);
       const lib  = resolveExercise(exercise);
       wtype = last?.weightType || lib.equipment || 'bodyweight';
-      if (last && Array.isArray(last.sets) && last.sets.length) {
-        formSets = last.sets.map(s => ({ weight: s.weight ?? '', reps: s.reps ?? '' }));
-      }
+      const lastSets = last && Array.isArray(last.sets) ? last.sets : [];
+      const count = plannedSetCount(exercise, date) || lastSets.length || 1;
+      formSets = Array.from({ length: count }, (_, i) => ({
+        weight: lastSets[i]?.weight ?? '',
+        reps:   lastSets[i]?.reps ?? ''
+      }));
     }
     document.querySelectorAll('.wtype-pill').forEach(p => p.classList.remove('on'));
     (document.querySelector(`.wtype-pill[data-wtype="${wtype}"]`) ||
