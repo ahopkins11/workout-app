@@ -227,6 +227,7 @@
     .generate-btn:active { opacity: 0.8; }
 
     #workout-result { padding: 1.25rem 1.25rem 0; }
+    #picked-result:not(:empty) { margin-top: 1.25rem; }
 
     .result-header {
       display: flex;
@@ -831,6 +832,7 @@
         <button class="add-entry-btn" id="open-workout-sheet-btn">+ New</button>
       </div>
       <div id="saved-workouts"></div>
+      <div id="picked-result"></div>
     </div>
 
     <div class="divider"></div>
@@ -1303,12 +1305,12 @@
     return `<div class="workout-last">Last: ${parts.join(' &middot; ')}</div>`;
   }
 
-  function renderWorkoutResult(title, workout, action, scroll = true, note = '') {
-    const result = document.getElementById('workout-result');
+  function renderWorkoutResult(title, workout, action, scroll = true, note = '', target = 'workout-result') {
+    const result = document.getElementById(target);
     result.innerHTML = `
       <div class="result-header">
         <span class="result-title">${title}</span>
-        <button class="regen-btn" id="regen-btn">${action.label}</button>
+        <button class="regen-btn">${action.label}</button>
       </div>
       ${note ? `<div class="workout-note">${escHtml(note)}</div>` : ''}
       <div class="exercise-list">
@@ -1330,7 +1332,7 @@
         }).join('')}
       </div>`;
 
-    document.getElementById('regen-btn').addEventListener('click', action.onClick);
+    result.querySelector('.regen-btn').addEventListener('click', action.onClick);
     if (scroll) result.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
@@ -1427,11 +1429,12 @@
         onClick: () => {
           setTodayPickId(null);
           renderSavedWorkouts();
-          document.getElementById('workout-result').innerHTML = '';
+          document.getElementById('picked-result').innerHTML = '';
         }
       },
       scroll,
-      w.note
+      w.note,
+      'picked-result'
     );
   }
 
@@ -1443,7 +1446,7 @@
       if (!w || !confirm(`Delete "${w.name}"?`)) return;
       saveSavedWorkouts(getSavedWorkouts().filter(x => x.id !== id));
       // Keep it in the journal for today, just stop showing it here
-      if (getTodayPickId() === id) document.getElementById('workout-result').innerHTML = '';
+      if (getTodayPickId() === id) document.getElementById('picked-result').innerHTML = '';
       renderSavedWorkouts();
       return;
     }
@@ -1731,7 +1734,7 @@
       delete map[date];
       saveDayWorkouts(map);
       if (date === todayStr()) {
-        document.getElementById('workout-result').innerHTML = '';
+        document.getElementById('picked-result').innerHTML = '';
         renderSavedWorkouts();
       }
       renderCalendar();
