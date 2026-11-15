@@ -683,6 +683,42 @@
       -webkit-tap-highlight-color: transparent;
     }
     .ex-delete:active { color: var(--accent); }
+
+    /* ── Saved workouts ── */
+    .saved-header-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.6rem;
+    }
+    .saved-header-row .section-title { margin-bottom: 0; }
+    .saved-header-row .add-entry-btn { margin-top: 0; }
+
+    #saved-workouts { display: flex; flex-direction: column; gap: 0.4rem; }
+
+    .saved-workout {
+      background: var(--card);
+      border: 1.5px solid transparent;
+      border-radius: 12px;
+      padding: 0.75rem 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      transition: border-color 0.15s;
+    }
+    .saved-workout.on { border-color: var(--accent); }
+    .saved-workout .today-tag {
+      font-size: 0.62rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: var(--accent);
+      flex-shrink: 0;
+    }
+    .saved-empty { color: var(--muted); font-size: 0.82rem; line-height: 1.5; }
+    .field-hint { font-size: 0.72rem; color: var(--muted); margin-top: 0.35rem; }
   </style>
 </head>
 <body>
@@ -712,10 +748,20 @@
 <div id="gen-screen" class="screen">
   <div class="screen-header">
     <h1>Generator</h1>
-    <p>Build a random workout</p>
+    <p>Pick today's workout or build a random one</p>
   </div>
 
   <div class="gen-body">
+    <div class="filter-group">
+      <div class="saved-header-row">
+        <div class="section-title">My Workouts</div>
+        <button class="add-entry-btn" id="open-workout-sheet-btn">+ New</button>
+      </div>
+      <div id="saved-workouts"></div>
+    </div>
+
+    <div class="divider"></div>
+
     <div class="filter-group">
       <div class="section-title">Equipment Available</div>
       <div class="toggle-grid" id="equip-toggles">
@@ -863,6 +909,30 @@
   </div>
 </div>
 
+<!-- ── New Workout Sheet ── -->
+<div class="sheet" id="workout-sheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-title">New Workout</div>
+
+  <div class="sheet-body">
+    <div>
+      <div class="field-label">Workout Name</div>
+      <input class="field-input" type="text" id="w-name" placeholder="e.g. Push Day" autocomplete="off" />
+    </div>
+
+    <div>
+      <div class="field-label">Exercises</div>
+      <textarea class="field-input" id="w-exercises" style="min-height:180px" placeholder="bench press&#10;pushups&#10;dips"></textarea>
+      <div class="field-hint">One exercise per line. You can paste a whole list.</div>
+    </div>
+  </div>
+
+  <div class="sheet-footer">
+    <button class="btn-cancel" id="w-cancel-btn">Cancel</button>
+    <button class="btn-save" id="w-save-btn">Save Workout</button>
+  </div>
+</div>
+
 <!-- ── Tab Bar ── -->
 <div id="tab-bar">
   <button class="tab-btn active" data-tab="library-screen">
@@ -902,6 +972,10 @@
     exercises = await res.json();
     renderLibrary();
     populateExerciseDatelist();
+    renderSavedWorkouts();
+    const pick = getTodayPickId();
+    const picked = pick && getSavedWorkouts().find(w => w.id === pick);
+    if (picked) showSavedWorkout(picked, false);
   }
 
   function getJournal() {
@@ -1005,10 +1079,11 @@
     closeAddExerciseSheet();
   });
 
-  // Close add-exercise sheet when overlay is tapped
+  // Close any open sheet when overlay is tapped
   document.getElementById('overlay').addEventListener('click', () => {
     closeAddExerciseSheet();
     closeSheet();
+    closeWorkoutSheet();
   });
 
   // Delete custom exercise
@@ -1124,49 +1199,186 @@
       return;
     }
 
-    const equipLabel = e => e.replace('_', ' / ').replace(/\b\w/g, c => c.toUpperCase());
+    // A random workout replaces today's saved pick
+    setTodayPickId(null);
+    renderSavedWorkouts();
 
-    function lastLoggedLine(ex) {
-      const log = getLastLogged(ex.name);
-      if (!log) return '';
-      const bw = log.weightType === 'bodyweight';
-      let setsStr = '';
-      if (Array.isArray(log.sets) && log.sets.length) {
-        if (bw) {
-          setsStr = log.sets.map(s => s.reps ?? '?').join('/') + ' reps';
-        } else {
-          setsStr = log.sets.map(s => `${s.weight ?? '?'}×${s.reps ?? '?'}`).join(' / ');
-        }
-      } else if (log.sets && log.reps) {
-        setsStr = `${log.sets}×${log.reps}`;
+    renderWorkoutResult(
+      `${workout.length} Exercise${workout.length > 1 ? 's' : ''}`,
+      workout,
+      { label: 'Regenerate', onClick: generateWorkout }
+    );
+  }
+
+  const equipLabel = e => e.replace('_', ' / ').replace(/\b\w/g, c => c.toUpperCase());
+
+  function lastLoggedLine(ex) {
+    const log = getLastLogged(ex.name);
+    if (!log) return '';
+    const bw = log.weightType === 'bodyweight';
+    let setsStr = '';
+    if (Array.isArray(log.sets) && log.sets.length) {
+      if (bw) {
+        setsStr = log.sets.map(s => s.reps ?? '?').join('/') + ' reps';
+      } else {
+        setsStr = log.sets.map(s => `${s.weight ?? '?'}×${s.reps ?? '?'}`).join(' / ');
       }
-      const parts = [bw ? 'Bodyweight' : equipLabel(log.weightType)];
-      if (setsStr) parts.push(setsStr);
-      return `<div class="workout-last">Last: ${parts.join(' &middot; ')}</div>`;
+    } else if (log.sets && log.reps) {
+      setsStr = `${log.sets}×${log.reps}`;
     }
+    const parts = [bw ? 'Bodyweight' : equipLabel(log.weightType)];
+    if (setsStr) parts.push(setsStr);
+    return `<div class="workout-last">Last: ${parts.join(' &middot; ')}</div>`;
+  }
 
-    document.getElementById('workout-result').innerHTML = `
+  function renderWorkoutResult(title, workout, action, scroll = true) {
+    const result = document.getElementById('workout-result');
+    result.innerHTML = `
       <div class="result-header">
-        <span class="result-title">${workout.length} Exercise${workout.length > 1 ? 's' : ''}</span>
-        <button class="regen-btn" id="regen-btn">Regenerate</button>
+        <span class="result-title">${title}</span>
+        <button class="regen-btn" id="regen-btn">${action.label}</button>
       </div>
       <div class="exercise-list">
-        ${workout.map((ex, i) => `
+        ${workout.map((ex, i) => {
+          const sub = [
+            ex.muscle_group ? ex.muscle_group.replace(/_/g, ' ') : '',
+            ex.equipment ? equipLabel(ex.equipment) : ''
+          ].filter(Boolean).join(' &middot; ');
+          return `
           <div class="workout-item">
             <div class="workout-num">${i + 1}</div>
             <div class="workout-info">
-              <div class="workout-name">${ex.name}</div>
-              <div class="workout-sub">${ex.muscle_group.replace(/_/g, ' ')} &middot; ${equipLabel(ex.equipment)}</div>
+              <div class="workout-name">${escHtml(ex.name)}</div>
+              ${sub ? `<div class="workout-sub">${sub}</div>` : ''}
               ${lastLoggedLine(ex)}
             </div>
-          </div>`).join('')}
+          </div>`;
+        }).join('')}
       </div>`;
 
-    document.getElementById('regen-btn').addEventListener('click', generateWorkout);
-    document.getElementById('workout-result').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    document.getElementById('regen-btn').addEventListener('click', action.onClick);
+    if (scroll) result.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
   document.getElementById('generate-btn').addEventListener('click', generateWorkout);
+
+  // ── Saved workouts ────────────────────────────────────
+  function getSavedWorkouts() {
+    try { return JSON.parse(localStorage.getItem('saved-workouts') || '[]'); }
+    catch { return []; }
+  }
+  function saveSavedWorkouts(arr) {
+    localStorage.setItem('saved-workouts', JSON.stringify(arr));
+  }
+
+  // Today's pick resets automatically on a new day
+  function getTodayPickId() {
+    try {
+      const p = JSON.parse(localStorage.getItem('today-workout') || 'null');
+      return p && p.date === todayStr() ? p.id : null;
+    } catch { return null; }
+  }
+  function setTodayPickId(id) {
+    if (id) localStorage.setItem('today-workout', JSON.stringify({ date: todayStr(), id }));
+    else localStorage.removeItem('today-workout');
+  }
+
+  // Look up library info (muscle group, equipment) for an exercise name
+  function findExercise(name) {
+    const n = name.toLowerCase();
+    const all = [...Object.values(exercises).flat(), ...getCustomExercises()];
+    return all.find(ex => ex.name.toLowerCase() === n) || { name, muscle_group: '', equipment: '' };
+  }
+
+  function renderSavedWorkouts() {
+    const list = getSavedWorkouts();
+    const pick = getTodayPickId();
+    const container = document.getElementById('saved-workouts');
+    if (!list.length) {
+      container.innerHTML = '<p class="saved-empty">No saved workouts yet. Tap "+ New" to add one.</p>';
+      return;
+    }
+    container.innerHTML = list.map(w => `
+      <div class="saved-workout${w.id === pick ? ' on' : ''}" data-wid="${w.id}">
+        <div class="workout-info">
+          <div class="workout-name">${escHtml(w.name)}</div>
+          <div class="workout-sub">${w.exercises.length} exercise${w.exercises.length === 1 ? '' : 's'}</div>
+        </div>
+        ${w.id === pick ? '<span class="today-tag">Today</span>' : ''}
+        <button class="ex-delete" data-delwid="${w.id}" aria-label="Delete workout">&#x2715;</button>
+      </div>`).join('');
+  }
+
+  function showSavedWorkout(w, scroll = true) {
+    renderWorkoutResult(
+      `Today: ${escHtml(w.name)}`,
+      w.exercises.map(findExercise),
+      {
+        label: 'Clear',
+        onClick: () => {
+          setTodayPickId(null);
+          renderSavedWorkouts();
+          document.getElementById('workout-result').innerHTML = '';
+        }
+      },
+      scroll
+    );
+  }
+
+  document.getElementById('saved-workouts').addEventListener('click', e => {
+    const del = e.target.closest('[data-delwid]');
+    if (del) {
+      const id = del.dataset.delwid;
+      const w = getSavedWorkouts().find(x => x.id === id);
+      if (!w || !confirm(`Delete "${w.name}"?`)) return;
+      saveSavedWorkouts(getSavedWorkouts().filter(x => x.id !== id));
+      if (getTodayPickId() === id) {
+        setTodayPickId(null);
+        document.getElementById('workout-result').innerHTML = '';
+      }
+      renderSavedWorkouts();
+      return;
+    }
+    const card = e.target.closest('.saved-workout[data-wid]');
+    if (!card) return;
+    const w = getSavedWorkouts().find(x => x.id === card.dataset.wid);
+    if (!w) return;
+    setTodayPickId(w.id);
+    renderSavedWorkouts();
+    showSavedWorkout(w);
+  });
+
+  function openWorkoutSheet() {
+    document.getElementById('w-name').value = '';
+    document.getElementById('w-exercises').value = '';
+    document.getElementById('overlay').classList.add('open');
+    document.getElementById('workout-sheet').classList.add('open');
+    setTimeout(() => document.getElementById('w-name').focus(), 350);
+  }
+
+  function closeWorkoutSheet() {
+    document.getElementById('overlay').classList.remove('open');
+    document.getElementById('workout-sheet').classList.remove('open');
+  }
+
+  document.getElementById('open-workout-sheet-btn').addEventListener('click', openWorkoutSheet);
+  document.getElementById('w-cancel-btn').addEventListener('click', closeWorkoutSheet);
+
+  document.getElementById('w-save-btn').addEventListener('click', () => {
+    const name = document.getElementById('w-name').value.trim();
+    if (!name) { document.getElementById('w-name').focus(); return; }
+    const list = document.getElementById('w-exercises').value
+      .split('\n')
+      .map(l => l.replace(/^\s*(?:[-*•]|\d+[.)])\s*/, '').trim())
+      .filter(Boolean);
+    if (!list.length) { document.getElementById('w-exercises').focus(); return; }
+
+    const saved = getSavedWorkouts();
+    saved.push({ id: String(Date.now()), name, exercises: list });
+    saveSavedWorkouts(saved);
+    renderSavedWorkouts();
+    closeWorkoutSheet();
+  });
 
   // ── Calendar ──────────────────────────────────────────
   const today = new Date();

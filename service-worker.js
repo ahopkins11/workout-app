@@ -1,4 +1,4 @@
-const CACHE = 'workout-v1';
+const CACHE = 'workout-v2';
 const ASSETS = [
   '/',
   '/index.html',
@@ -22,11 +22,28 @@ self.addEventListener('activate', e => {
   self.clients.claim();
 });
 
-// Cache-first for same-origin assets, network-first for everything else
+// Network-first for the page and exercise data (so updates show right away),
+// cache-first for everything else. Falls back to cache when offline.
 self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET') return;
   const url = new URL(e.request.url);
   if (url.origin !== location.origin) return;
+
+  const networkFirst = e.request.mode === 'navigate' ||
+    url.pathname.endsWith('.html') || url.pathname.endsWith('.json') || url.pathname.endsWith('/');
+
+  if (networkFirst) {
+    e.respondWith(
+      fetch(e.request)
+        .then(res => {
+          const clone = res.clone();
+          caches.open(CACHE).then(cache => cache.put(e.request, clone));
+          return res;
+        })
+        .catch(() => caches.match(e.request))
+    );
+    return;
+  }
 
   e.respondWith(
     caches.match(e.request).then(cached => {
